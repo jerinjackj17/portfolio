@@ -1,6 +1,7 @@
 import { Analytics } from "@vercel/analytics/react";
 import Nav from "./components/Nav";
 import Hero from "./components/Hero";
+import SystemLogBackground from "./components/SystemLogBackground";
 import FlameGraph from "./components/FlameGraph";
 import About from "./components/About";
 import Experience from "./components/Experience";
@@ -14,6 +15,8 @@ import Footer from "./components/Footer";
 export default function App() {
   return (
     <div className="grain min-h-screen bg-paper font-sans text-ink">
+      <SystemLogBackground />
+      <div className="relative z-10">
       <Nav />
       <main>
         <Hero />
@@ -32,6 +35,7 @@ export default function App() {
         <Contact />
       </main>
       <Footer />
+      </div>
       <Analytics />
     </div>
   );

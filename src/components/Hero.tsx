@@ -1,6 +1,6 @@
 import { hero } from "../data";
 import SystemPlayground from "./SystemPlayground";
-import SlowQueryGame from "./SlowQueryGame";
+import GameTeaser from "./GameTeaser";
 
 export default function Hero() {
   return (
@@ -27,7 +27,7 @@ export default function Hero() {
           </p>
         </div>
         <div className="mt-10 md:mt-2">
-          <SlowQueryGame />
+          <GameTeaser />
         </div>
       </div>
 

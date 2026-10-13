@@ -782,7 +782,11 @@ export default function SystemPlayground() {
     flashTimer.current = window.setTimeout(() => setFlash(null), 2600);
   };
 
-  const setScenario = (sc: Scenario) =>
+  const setScenario = (sc: Scenario) => {
+    // Let the ambient background log react to the incident lifecycle.
+    window.dispatchEvent(
+      new CustomEvent("jj:scenario", { detail: { scenario: sc } }),
+    );
     setSim((s) => {
       if (sc === s.scenario) return s;
       if (sc === "healthy") {
@@ -801,6 +805,7 @@ export default function SystemPlayground() {
       // chaos: open an incident, start the clock
       return { ...s, scenario: sc, incidentStart: Date.now() };
     });
+  };
 
   const incidentSecs =
     sim.incidentStart != null
