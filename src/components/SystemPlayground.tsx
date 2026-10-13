@@ -210,6 +210,8 @@ interface NodeSim {
 interface Sim {
   scenario: Scenario;
   auto: boolean;
+  /** trip-speed slider: scales the whole visualization, not the latency numbers */
+  speedMul: number;
   /** active round trips: the visitor's requests */
   trips: Trip[];
   /** active round trips: ambient traffic (full out-and-back, dimmer, slower) */
@@ -240,6 +242,7 @@ function initSim(): Sim {
   return {
     scenario: "healthy",
     auto: true,
+    speedMul: 1,
     trips: [],
     ambient: [],
     nodes,
@@ -334,7 +337,10 @@ function assembleTrip(
     : null;
 
   const ms = latencyFor(scenario);
-  const pauseMs = 250;
+  // incident pace: the whole trip feels sluggish when the database is slow,
+  // a touch heavy in a flood. Baked into the car's speed at creation.
+  const pace = scenario === "slow-db" ? 0.35 : scenario === "flood" ? 0.85 : 1;
+  const pauseMs = user ? Math.round(250 / pace) : 300 + Math.random() * 600;
   // slow-db: the car visibly waits at the data node for the incident latency
   const processMs = !user
     ? 300
@@ -344,19 +350,19 @@ function assembleTrip(
         ? 250
         : 450;
   const nodePauseTotal = user ? stops.length * pauseMs : 0;
-  // the whole journey takes a few watchable seconds; the user's car is quicker
+  // a healthy round trip takes about six watchable seconds; the user's car
+  // is quicker than ambient traffic so the composed request stays the star
   const targetMs = user
-    ? scenario === "slow-db"
-      ? 5200
-      : scenario === "flood"
-        ? 2600
-        : 3800
+    ? scenario === "flood"
+      ? 2600
+      : 6000
     : scenario === "flood"
       ? 3400
-      : 5600;
+      : 7000;
   const driveMs = Math.max(900, targetMs - nodePauseTotal - processMs);
-  // the per-leg easing averages ~0.76, so compensate to hit the target
-  const speed = total / ((driveMs / 1000) * 0.76);
+  // the per-leg easing averages ~0.76, so compensate to hit the target;
+  // pace slows the whole drive when the system is sick
+  const speed = total / ((driveMs / 1000) * 0.76) / pace;
 
   return {
     id,
@@ -376,7 +382,7 @@ function assembleTrip(
       ? stops.map(() => true)
       : stops.map((_, i) => scenario === "flood" && i === 0),
     pauseLeft: 0,
-    pauseMs: user ? pauseMs : 300 + Math.random() * 600,
+    pauseMs,
     dist: 0,
     processLeft: 0,
     processMs,
@@ -389,10 +395,14 @@ function assembleTrip(
   };
 }
 
-/** advance one trip by a 150ms tick. Returns the trip and whether it arrived home. */
+/** advance one trip by a 150ms tick. vizMul (the trip-speed slider) scales the
+    whole animation: car travel, node pauses, smoke pacing. The simulated
+    latency number on the response card is untouched. Returns the trip and
+    whether it arrived home. */
 function stepTrip(
   t: Trip,
   frozen: boolean,
+  vizMul: number,
 ): { trip: Trip; arrived: boolean } {
   if (frozen) {
     return {
@@ -408,9 +418,9 @@ function stepTrip(
   };
   if (pauseLeft > 0) {
     // held at a node: you can see it wait
-    pauseLeft -= 150;
+    pauseLeft -= 150 * vizMul;
   } else if (dist < t.outLen) {
-    const step = t.speed * 0.15 * ease(dist, t.outLen);
+    const step = t.speed * vizMul * 0.15 * ease(dist, t.outLen);
     const stop = t.stops[stopIdx];
     if (stop != null && dist + step >= stop) {
       dist = stop;
@@ -425,10 +435,10 @@ function stepTrip(
     }
   } else if (processLeft > 0) {
     // processing beat at the data node; the pulse rings play here
-    processLeft -= 150;
-    processAge += 150;
+    processLeft -= 150 * vizMul;
+    processAge += 150 * vizMul;
   } else if (dist < t.total) {
-    const step = t.speed * 0.15 * ease(dist - t.outLen, t.total - t.outLen);
+    const step = t.speed * vizMul * 0.15 * ease(dist - t.outLen, t.total - t.outLen);
     dist = Math.min(t.total, dist + step);
     if (dist >= t.total) arrived = true;
   }
@@ -449,7 +459,10 @@ function CarArt({ solid }: { solid?: boolean }) {
       strokeLinejoin="round"
       fill={solid ? "#1A1815" : "#FBF8F1"}
     >
-      <path d="M-11 3 L-11 -2 L-5 -2 L-2 -6 L6 -6 L9 -2 L11 -2 L11 3 Z" />
+      <path d="M-11 3 L-11 -2 L-6 -2 L-4 -6 L2 -6 L6 -2 L11 -2 L11 3 Z" />
+      {/* windshield, then the headlight: the front is +x, always */}
+      <path d="M2 -6 L6 -2" strokeWidth={1.25} />
+      <circle cx={9.2} cy={0.2} r={1.4} fill="#FBF8F1" strokeWidth={1} />
       <circle cx={-5.5} cy={4.5} r={2.1} fill={solid ? "#FBF8F1" : "#1A1815"} stroke="none" />
       <circle cx={5.5} cy={4.5} r={2.1} fill={solid ? "#FBF8F1" : "#1A1815"} stroke="none" />
     </g>
@@ -480,8 +493,10 @@ function VehicleMark({ kind }: { kind: VKind }) {
 
 /* ============ the hero car: the visitor's own request ============ */
 /* Accent body on the way out, return-green on the way back, a touch    */
-/* larger, dark outline. The exhaust trail takes the same color as the  */
-/* car, so outbound and return read as two different journeys.          */
+/* larger, dark outline. The front is +x (headlight + windshield), so   */
+/* rotate(ang) always faces the direction of travel, out and back. The   */
+/* exhaust smoke takes the same color as the car, so outbound and       */
+/* return read as two different journeys.                               */
 
 const RETURN_GREEN = "#2e7d32";
 
@@ -495,7 +510,9 @@ function HeroCarArt({ tone }: { tone: "out" | "back" }) {
       fill={tone === "out" ? "var(--accent)" : RETURN_GREEN}
       transform="scale(1.3)"
     >
-      <path d="M-11 3 L-11 -2 L-5 -2 L-2 -6 L6 -6 L9 -2 L11 -2 L11 3 Z" />
+      <path d="M-11 3 L-11 -2 L-6 -2 L-4 -6 L2 -6 L6 -2 L11 -2 L11 3 Z" />
+      <path d="M2 -6 L6 -2" strokeWidth={1.25} />
+      <circle cx={9.2} cy={0.2} r={1.4} fill="#FBF8F1" strokeWidth={1} />
       <circle cx={-5.5} cy={4.5} r={2.1} fill="#FBF8F1" stroke="none" />
       <circle cx={5.5} cy={4.5} r={2.1} fill="#FBF8F1" stroke="none" />
     </g>
@@ -510,7 +527,7 @@ interface Puff {
   color: string;
 }
 
-const PUFF_LIFE = 1300;
+const PUFF_LIFE = 2200;
 
 function TripVehicle({
   trip,
@@ -537,16 +554,31 @@ function TripVehicle({
   const ey = y - 17 * Math.sin(rad);
 
   // Sample the exhaust after each render (the parent tick re-renders
-  // ~7x/sec while the sim runs). Presentation only.
+  // ~7x/sec while the sim runs). Two puffs per sample with a little
+  // jitter, plus a gentle idle puff while the car waits at a node.
+  // Presentation only.
   useEffect(() => {
     if (reduceMotion || !trip.trail) return;
     const l = last.current;
-    if (!l || Math.hypot(ex - l.x, ey - l.y) > 12) {
-      idRef.current += 1;
+    const moved = l ? Math.hypot(ex - l.x, ey - l.y) : Infinity;
+    const idling = trip.pauseLeft > 0 || trip.processLeft > 0;
+    if (moved > 7 || idling) {
       const now = Date.now();
+      const fresh: Puff[] = [];
+      const n = moved > 7 ? 2 : 1;
+      for (let k = 0; k < n; k++) {
+        idRef.current += 1;
+        fresh.push({
+          id: idRef.current,
+          x: ex + (Math.random() * 8 - 4),
+          y: ey + (Math.random() * 8 - 4),
+          born: now - k * 70,
+          color: puffColor,
+        });
+      }
       trail.current = [
         ...trail.current.filter((p) => now - p.born < PUFF_LIFE),
-        { id: idRef.current, x: ex, y: ey, born: now, color: puffColor },
+        ...fresh,
       ];
       last.current = { x: ex, y: ey };
     }
@@ -565,9 +597,9 @@ function TripVehicle({
               key={p.id}
               cx={p.x.toFixed(1)}
               cy={p.y.toFixed(1)}
-              r={(2 + age * 5).toFixed(1)}
+              r={(3.5 + age * 9).toFixed(1)}
               fill={p.color}
-              opacity={(0.5 * (1 - age)).toFixed(2)}
+              opacity={(0.7 * (1 - age)).toFixed(2)}
             />
           );
         })}
@@ -762,7 +794,7 @@ export default function SystemPlayground() {
         const stepAll = (list: Trip[]) => {
           const kept: Trip[] = [];
           for (const t of list) {
-            const { trip, arrived } = stepTrip(t, frozen);
+            const { trip, arrived } = stepTrip(t, frozen, s.speedMul);
             if (arrived) {
               if (trip.user) {
                 newResponse = {
@@ -1002,6 +1034,29 @@ export default function SystemPlayground() {
           >
             auto traffic: {sim.auto ? "on" : "off"}
           </button>
+          <label className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-smoke">
+            trip speed
+            <span className="text-faint">slower</span>
+            <input
+              type="range"
+              min={0.25}
+              max={2}
+              step={0.25}
+              value={sim.speedMul}
+              onChange={(e) =>
+                setSim((s) => ({ ...s, speedMul: parseFloat(e.target.value) }))
+              }
+              aria-label="trip speed. changes how fast you watch the cars drive, not the latency numbers."
+              className="w-24 accent-[var(--accent)] sm:w-28"
+            />
+            <span className="text-faint">faster</span>
+            <span className="tnum normal-case tracking-normal text-ink">
+              {Number(sim.speedMul.toFixed(2))}x
+            </span>
+          </label>
+          <span className="font-mono text-[10px] normal-case tracking-normal text-faint">
+            how fast you watch, not the numbers
+          </span>
           {userActive && (
             <span className="tnum font-mono text-[11px] uppercase tracking-[0.16em] text-flame-deep">
               request on the road…

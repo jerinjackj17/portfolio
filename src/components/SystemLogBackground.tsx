@@ -113,7 +113,7 @@ function pick(pool: string[]): string {
 
 const RADIUS = 170; // px: disturbance field around the cursor
 const PUSH = 70; // px: max scatter distance
-const OPACITY: Record<Kind, number> = { log: 0.45, chip: 0.5, code: 0.38 };
+const OPACITY: Record<Kind, number> = { log: 0.55, chip: 0.6, code: 0.5 };
 
 // Deterministic spread so logs, chips, and snippets interleave evenly.
 function spread(n: number, seed: number): [number, number][] {
@@ -175,6 +175,19 @@ function makeItems(): BgItem[] {
       }
     }
   }
+  // a few extra items parked near the top so the background reads on load,
+  // even on a phone screen showing just the hero
+  const topSpots: [Kind, number, number, string][] = [
+    ["log", 8, 4, pick(CALM)],
+    ["chip", 62, 6, "java"],
+    ["log", 38, 12, pick(CALM)],
+    ["chip", 84, 14, "kafka"],
+    ["code", 14, 18, CODE[1]],
+    ["log", 68, 20, pick(CALM)],
+    ["chip", 44, 8, "spring boot"],
+    ["log", 88, 10, pick(CALM)],
+  ];
+  for (const [kind, x, y, text] of topSpots) items.push(mk(kind, x, y, text));
   return items;
 }
 
@@ -329,7 +342,7 @@ export default function SystemLogBackground() {
     if (it.kind === "chip") {
       return (
         <div key={it.id} ref={ref} className="absolute select-none">
-          <span className="whitespace-nowrap border border-ink/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-smoke">
+          <span className="whitespace-nowrap border border-ink/40 px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.14em] text-smoke">
             {it.text}
           </span>
         </div>
@@ -338,7 +351,7 @@ export default function SystemLogBackground() {
     if (it.kind === "code") {
       return (
         <div key={it.id} ref={ref} className="absolute select-none">
-          <p className="whitespace-nowrap font-mono text-[10px] leading-relaxed text-smoke">
+          <p className="whitespace-nowrap font-mono text-[11px] leading-relaxed text-smoke">
             {it.text}
           </p>
         </div>
@@ -346,7 +359,7 @@ export default function SystemLogBackground() {
     }
     return (
       <div key={it.id} ref={ref} className="absolute select-none">
-        <p className="whitespace-nowrap font-mono text-[11px] leading-relaxed text-smoke">
+        <p className="whitespace-nowrap font-mono text-[12px] leading-relaxed text-smoke">
           {highlight(it.text, it.id)}
         </p>
       </div>
@@ -354,37 +367,38 @@ export default function SystemLogBackground() {
   };
 
   if (reduceMotion) {
-    // Fully static: fixed faint elements, no animation, no cursor reaction.
+    // Fully static: fixed elements, no animation, no cursor reaction.
+    // Still clearly visible: this is what phones with reduced motion see.
     return (
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-0 select-none overflow-hidden"
       >
-        {CALM.slice(0, 8).map((t, i) => (
+        {CALM.slice(0, 12).map((t, i) => (
           <p
             key={`s-log-${i}`}
-            className="absolute whitespace-nowrap font-mono text-[11px] leading-relaxed text-smoke opacity-50"
-            style={{ left: `${4 + (i % 3) * 30}%`, top: `${8 + i * 11}%` }}
+            className="absolute whitespace-nowrap font-mono text-[12px] leading-relaxed text-smoke opacity-60"
+            style={{ left: `${4 + (i % 4) * 24}%`, top: `${3 + i * 7}%` }}
           >
             {highlight(t, i)}
           </p>
         ))}
-        {CHIPS.slice(0, 6).map((c, i) => (
+        {CHIPS.slice(0, 8).map((c, i) => (
           <p
             key={`s-chip-${i}`}
             className="absolute"
-            style={{ left: `${10 + (i % 3) * 32}%`, top: `${14 + i * 13}%` }}
+            style={{ left: `${8 + (i % 4) * 24}%`, top: `${6 + i * 10.5}%` }}
           >
-            <span className="whitespace-nowrap border border-ink/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-smoke opacity-50">
+            <span className="whitespace-nowrap border border-ink/40 px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.14em] text-smoke opacity-60">
               {c}
             </span>
           </p>
         ))}
-        {CODE.slice(0, 2).map((c, i) => (
+        {CODE.slice(0, 3).map((c, i) => (
           <p
             key={`s-code-${i}`}
-            className="absolute whitespace-nowrap font-mono text-[10px] text-smoke opacity-50"
-            style={{ left: `${20 + i * 35}%`, top: `${30 + i * 37}%` }}
+            className="absolute whitespace-nowrap font-mono text-[11px] text-smoke opacity-60"
+            style={{ left: `${15 + i * 30}%`, top: `${12 + i * 28}%` }}
           >
             {c}
           </p>
