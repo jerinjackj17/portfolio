@@ -9,7 +9,6 @@ import Skills from "./components/Skills";
 import Education from "./components/Education";
 import Contact from "./components/Contact";
 import Footer from "./components/Footer";
-import FontLab from "./components/FontLab"; // TEMPORARY PREVIEW ONLY - strip before production merge
 
 export default function App() {
   return (
@@ -32,7 +31,6 @@ export default function App() {
         <Contact />
       </main>
       <Footer />
-      <FontLab /> {/* TEMPORARY PREVIEW ONLY - strip before production merge */}
     </div>
   );
 }
