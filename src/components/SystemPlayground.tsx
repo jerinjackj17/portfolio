@@ -177,6 +177,8 @@ interface FlightV {
   method: string;
   endpoint: string;
   ms: number;
+  /** wall-clock delivery timer; the response lands on this, not on the animation */
+  timerId: number | null;
 }
 
 interface AmbientV {
@@ -431,6 +433,15 @@ export default function SystemPlayground() {
   const roadRefs = useRef(new Map<string, SVGPathElement>());
   const samplesRef = useRef<Record<string, Pt[]>>({});
   const lengthsRef = useRef<Record<string, number>>({});
+  const flightTimerRef = useRef<number | null>(null);
+
+  // clear any pending response timer on unmount
+  useEffect(() => {
+    return () => {
+      if (flightTimerRef.current != null)
+        window.clearTimeout(flightTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const samples: Record<string, Pt[]> = {};
@@ -597,25 +608,53 @@ export default function SystemPlayground() {
     const outLen = cum[raw.length - 1];
     const ms = latencyFor(sim.scenario);
     const dwell = sim.scenario === "slow-db" ? 1800 : 450;
+    // The response is delivered on a wall-clock timer of exactly the simulated
+    // latency, decoupled from the incident lifecycle and from the vehicle
+    // animation (which crawls during slow-db). The incident clock keeps ticking
+    // until "fix everything"; the request itself always completes on time.
+    const flight: FlightV = {
+      pts: full,
+      cum,
+      total,
+      outLen,
+      dist: 0,
+      dwellLeft: dwell,
+      kind: METHOD_VEHICLE[method],
+      route,
+      method,
+      endpoint,
+      ms,
+      timerId: null,
+    };
+    const timerId = window.setTimeout(() => {
+      flightTimerRef.current = null;
+      setSim((s) => {
+        const f = s.flight;
+        // stale timer (a newer flight already resolved) or already delivered
+        if (!f || f.timerId !== timerId) return s;
+        return {
+          ...s,
+          flight: null,
+          response: {
+            route: f.route,
+            method: f.method,
+            endpoint: f.endpoint,
+            ms: f.ms,
+            key: s.nextId,
+          },
+          nextId: s.nextId + 1,
+        };
+      });
+    }, ms);
+    flight.timerId = timerId;
+    flightTimerRef.current = timerId;
     setSim((s) =>
       s.flight
         ? s
         : {
             ...s,
             response: null,
-            flight: {
-              pts: full,
-              cum,
-              total,
-              outLen,
-              dist: 0,
-              dwellLeft: dwell,
-              kind: METHOD_VEHICLE[method],
-              route,
-              method,
-              endpoint,
-              ms,
-            },
+            flight,
           },
     );
   };

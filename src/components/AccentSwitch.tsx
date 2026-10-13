@@ -1,42 +1,16 @@
 import { useEffect, useState } from "react";
-
-interface Accent {
-  id: string;
-  label: string;
-  accent: string;
-  deep: string;
-}
-
-const ACCENTS: Accent[] = [
-  { id: "flame", label: "flame", accent: "#E8491D", deep: "#B23A12" },
-  { id: "blue", label: "blue", accent: "#2456C8", deep: "#1A41A0" },
-  { id: "green", label: "green", accent: "#2E7D32", deep: "#1F6B2A" },
-  { id: "amber", label: "amber", accent: "#C77414", deep: "#9A5A0C" },
-];
-
-const KEY = "jj-accent";
-
-function apply(a: Accent) {
-  const root = document.documentElement;
-  root.style.setProperty("--accent", a.accent);
-  root.style.setProperty("--accent-deep", a.deep);
-}
+import {
+  ACCENTS,
+  getAccentId,
+  setAccentId,
+  subscribeAccent,
+} from "../accent";
 
 export default function AccentSwitch() {
-  const [current, setCurrent] = useState<string>("flame");
+  // Single source of truth lives in ../accent; this component only mirrors it.
+  const [current, setCurrent] = useState<string>(() => getAccentId());
 
-  useEffect(() => {
-    const saved = window.localStorage.getItem(KEY);
-    const found = ACCENTS.find((a) => a.id === saved) ?? ACCENTS[0];
-    setCurrent(found.id);
-    apply(found);
-  }, []);
-
-  const pick = (a: Accent) => {
-    setCurrent(a.id);
-    apply(a);
-    window.localStorage.setItem(KEY, a.id);
-  };
+  useEffect(() => subscribeAccent(setCurrent), []);
 
   return (
     <div
@@ -51,7 +25,7 @@ export default function AccentSwitch() {
         <button
           key={a.id}
           type="button"
-          onClick={() => pick(a)}
+          onClick={() => setAccentId(a.id)}
           aria-label={`accent: ${a.label}`}
           aria-pressed={current === a.id}
           title={a.label}
