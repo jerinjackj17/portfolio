@@ -27,7 +27,7 @@
   --color-warn: #c77414;
 
   /* display type behind one variable so the face can be swapped trivially */
-  --font-display: "Alfa Slab One", "Georgia", serif;
+  --font-display: "Chakra Petch", "Arial Narrow", sans-serif;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 }

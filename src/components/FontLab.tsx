@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * TEMPORARY PREVIEW-ONLY PANEL - DO NOT SHIP TO PRODUCTION.
@@ -7,21 +7,32 @@ import { useState } from "react";
  * App.tsx) before merging to main.
  */
 
+export const FONT_CHANGE_EVENT = "fontlab:font";
+
 const FONTS = [
-  { id: "alfa", label: "Alfa Slab One", stack: '"Alfa Slab One", "Georgia", serif' },
-  { id: "bitter", label: "Bitter", stack: '"Bitter", "Georgia", serif' },
-  { id: "rokkitt", label: "Rokkitt", stack: '"Rokkitt", "Georgia", serif' },
+  { id: "chakra", label: "Chakra Petch", stack: '"Chakra Petch", "Arial Narrow", sans-serif' },
+  { id: "rozha", label: "Rozha One", stack: '"Rozha One", "Georgia", serif' },
+  { id: "saira", label: "Saira Condensed", stack: '"Saira Condensed", "Arial Narrow", sans-serif' },
 ];
 
+const DEFAULT_ID = "chakra";
+
 export default function FontLab() {
-  const [current, setCurrent] = useState("alfa");
+  const [current, setCurrent] = useState(DEFAULT_ID);
 
   const pick = (id: string) => {
     const f = FONTS.find((x) => x.id === id);
     if (!f) return;
     setCurrent(id);
     document.documentElement.style.setProperty("--font-display", f.stack);
+    window.dispatchEvent(new CustomEvent(FONT_CHANGE_EVENT, { detail: f.label }));
   };
+
+  // announce the default on mount so the footer names the right font
+  useEffect(() => {
+    const f = FONTS.find((x) => x.id === DEFAULT_ID);
+    if (f) window.dispatchEvent(new CustomEvent(FONT_CHANGE_EVENT, { detail: f.label }));
+  }, []);
 
   return (
     <div
