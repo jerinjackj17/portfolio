@@ -97,7 +97,7 @@ function pick(pool: string[]): string {
 const LINE_COUNT = 10;
 const RADIUS = 170; // px: disturbance field around the cursor
 const PUSH = 70; // px: max scatter distance
-const BASE_OPACITY = 0.3;
+const BASE_OPACITY = 0.45;
 
 const ANCHORS: [number, number][] = [
   [6, 12], [70, 8], [35, 26], [82, 30], [12, 44],
@@ -263,7 +263,7 @@ export default function SystemLogBackground() {
         {CALM.slice(0, 8).map((t, i) => (
           <p
             key={i}
-            className="absolute font-mono text-[11px] leading-relaxed text-faint opacity-30"
+            className="absolute font-mono text-[11px] leading-relaxed text-smoke opacity-50"
             style={{ left: `${4 + (i % 3) * 30}%`, top: `${8 + i * 11}%` }}
           >
             {highlight(t, i)}
@@ -284,7 +284,7 @@ export default function SystemLogBackground() {
           ref={(el) => {
             nodeRefs.current[i] = el;
           }}
-          className="absolute whitespace-nowrap font-mono text-[11px] leading-relaxed text-faint"
+          className="absolute whitespace-nowrap font-mono text-[11px] leading-relaxed text-smoke"
           style={{ left: `${l.xPct}%`, top: `${l.yPct}%` }}
         >
           {highlight(l.text, l.id)}

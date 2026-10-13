@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import SlowQueryGame from "./SlowQueryGame";
 
 /* Hero teaser for "catch the slow query": a compact card that opens the
@@ -74,39 +75,41 @@ export default function GameTeaser() {
         </div>
       </div>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="catch the slow query game"
-        >
-          <button
-            type="button"
-            aria-label="close game"
-            onClick={() => setOpen(false)}
-            className="absolute inset-0 cursor-default bg-ink/25"
-            tabIndex={-1}
-          />
-          <div className="relative max-h-[92vh] w-full max-w-[560px] overflow-y-auto border border-ink/70 bg-paper p-4 md:p-6">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke">
-                the on-call arcade
-              </p>
-              <button
-                ref={closeRef}
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="close game"
-                className="border border-ink/60 px-3 py-1.5 font-mono text-xs text-ink transition-colors hover:border-ink"
-              >
-                ✕ close
-              </button>
+      {open &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="catch the slow query game"
+          >
+            <button
+              type="button"
+              aria-label="close game"
+              onClick={() => setOpen(false)}
+              className="absolute inset-0 cursor-default bg-ink/25"
+              tabIndex={-1}
+            />
+            <div className="relative max-h-[92vh] w-full max-w-[560px] overflow-y-auto border border-ink/70 bg-paper p-4 md:p-6">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke">
+                  the on-call arcade
+                </p>
+                <button
+                  ref={closeRef}
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="close game"
+                  className="border border-ink/60 px-3 py-1.5 font-mono text-xs text-ink transition-colors hover:border-ink"
+                >
+                  ✕ close
+                </button>
+              </div>
+              <SlowQueryGame />
             </div>
-            <SlowQueryGame />
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
