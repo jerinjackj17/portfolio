@@ -172,6 +172,155 @@ function drawGlyph(
       ctx.lineTo(x + s * 0.58, y + s * 0.33);
       break;
     }
+    case "hex": {
+      // hexagon
+      for (let i = 0; i <= 6; i++) {
+        const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+        const px = x + Math.cos(a) * s * 0.55;
+        const py = y + Math.sin(a) * s * 0.55;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      break;
+    }
+    case "cube": {
+      // isometric cube outline
+      const w = s * 0.5;
+      const h = s * 0.32;
+      ctx.moveTo(x - w, y);
+      ctx.lineTo(x, y - h);
+      ctx.lineTo(x + w, y);
+      ctx.lineTo(x, y + h);
+      ctx.closePath();
+      ctx.moveTo(x - w, y);
+      ctx.lineTo(x, y + h);
+      ctx.lineTo(x + w, y);
+      ctx.moveTo(x, y - h);
+      ctx.lineTo(x, y + h);
+      break;
+    }
+    case "gear": {
+      // small gear: ring + teeth
+      ctx.arc(x, y, s * 0.34, 0, Math.PI * 2);
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.moveTo(x + Math.cos(a) * s * 0.34, y + Math.sin(a) * s * 0.34);
+        ctx.lineTo(x + Math.cos(a) * s * 0.52, y + Math.sin(a) * s * 0.52);
+      }
+      break;
+    }
+    case "waves": {
+      // three signal arcs
+      for (let i = 1; i <= 3; i++) {
+        ctx.moveTo(x - s * 0.5, y + s * (0.35 - i * 0.28));
+        ctx.quadraticCurveTo(x, y + s * (0.05 - i * 0.28), x + s * 0.5, y + s * (0.35 - i * 0.28));
+      }
+      break;
+    }
+    case "spiral": {
+      // loose spiral
+      for (let a = 0; a < Math.PI * 3.4; a += 0.25) {
+        const r = (a / (Math.PI * 3.4)) * s * 0.55;
+        const px = x + Math.cos(a) * r;
+        const py = y + Math.sin(a) * r;
+        if (a === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      break;
+    }
+    case "target": {
+      // crosshair: circle + ticks
+      ctx.arc(x, y, s * 0.5, 0, Math.PI * 2);
+      ctx.moveTo(x - s * 0.72, y);
+      ctx.lineTo(x - s * 0.5, y);
+      ctx.moveTo(x + s * 0.5, y);
+      ctx.lineTo(x + s * 0.72, y);
+      ctx.moveTo(x, y - s * 0.72);
+      ctx.lineTo(x, y - s * 0.5);
+      ctx.moveTo(x, y + s * 0.5);
+      ctx.lineTo(x, y + s * 0.72);
+      break;
+    }
+    case "lock": {
+      // padlock: body + shackle
+      ctx.rect(x - s * 0.4, y - s * 0.05, s * 0.8, s * 0.55);
+      ctx.moveTo(x - s * 0.25, y - s * 0.05);
+      ctx.lineTo(x - s * 0.25, y - s * 0.3);
+      ctx.arc(x, y - s * 0.3, s * 0.25, Math.PI, 0);
+      ctx.lineTo(x + s * 0.25, y - s * 0.05);
+      break;
+    }
+    case "chip": {
+      // chip: square + pins
+      ctx.rect(x - s * 0.35, y - s * 0.35, s * 0.7, s * 0.7);
+      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+        ctx.moveTo(x + dx * s * 0.35, y + dy * s * 0.35);
+        ctx.lineTo(x + dx * s * 0.58, y + dy * s * 0.58);
+      }
+      break;
+    }
+    case "antenna": {
+      // broadcast: dot + two arcs
+      ctx.moveTo(x + s * 0.06, y + s * 0.1);
+      ctx.arc(x, y + s * 0.1, s * 0.06, 0, Math.PI * 2);
+      ctx.arc(x, y + s * 0.1, s * 0.32, -Math.PI / 3, -Math.PI / 6 + Math.PI / 2);
+      ctx.moveTo(x + s * 0.45 * Math.cos(-Math.PI / 3), y + s * 0.1 + s * 0.45 * Math.sin(-Math.PI / 3));
+      ctx.arc(x, y + s * 0.1, s * 0.45, -Math.PI / 3, Math.PI / 3);
+      break;
+    }
+    case "gauge": {
+      // dial: arc + needle
+      ctx.arc(x, y, s * 0.5, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + s * 0.34, y - s * 0.28);
+      break;
+    }
+    case "layers": {
+      // stacked diamonds
+      for (let i = 0; i < 3; i++) {
+        const yy = y - s * 0.25 + i * s * 0.25;
+        ctx.moveTo(x - s * 0.5, yy);
+        ctx.lineTo(x, yy - s * 0.22);
+        ctx.lineTo(x + s * 0.5, yy);
+      }
+      break;
+    }
+    case "diamond": {
+      ctx.moveTo(x, y - s * 0.55);
+      ctx.lineTo(x + s * 0.4, y);
+      ctx.lineTo(x, y + s * 0.55);
+      ctx.lineTo(x - s * 0.4, y);
+      ctx.closePath();
+      break;
+    }
+    case "tri": {
+      for (let i = 0; i <= 3; i++) {
+        const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
+        const px = x + Math.cos(a) * s * 0.55;
+        const py = y + Math.sin(a) * s * 0.55;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      break;
+    }
+    case "spark": {
+      // four-point star
+      ctx.moveTo(x, y - s * 0.55);
+      ctx.quadraticCurveTo(x, y, x + s * 0.55, y);
+      ctx.quadraticCurveTo(x, y, x, y + s * 0.55);
+      ctx.quadraticCurveTo(x, y, x - s * 0.55, y);
+      ctx.quadraticCurveTo(x, y, x, y - s * 0.55);
+      break;
+    }
+    case "grid": {
+      // 2x2 grid
+      ctx.rect(x - s * 0.5, y - s * 0.5, s, s);
+      ctx.moveTo(x, y - s * 0.5);
+      ctx.lineTo(x, y + s * 0.5);
+      ctx.moveTo(x - s * 0.5, y);
+      ctx.lineTo(x + s * 0.5, y);
+      break;
+    }
     default: {
       ctx.arc(x, y, s * 0.4, 0, Math.PI * 2);
     }
@@ -282,6 +431,12 @@ export default function SystemLogBackground() {
         nodes[idx].hub = order[k % order.length];
         nodes[idx].r = 7;
       });
+      // every node gets an icon: hubs use the stack glyph, the rest get a
+      // decorative geometric mark so icons run through the whole network
+      const GENERIC = ["hex", "cube", "gear", "waves", "spiral", "target", "lock", "chip", "antenna", "gauge", "layers", "diamond", "tri", "spark", "grid"];
+      nodes.forEach((n, i) => {
+        if (!n.hub) n.hub = GENERIC[i % GENERIC.length];
+      });
       // keep packets on valid edges
       packets = packets.filter((p) => p.from < nodes.length && p.to < nodes.length);
       camTarget = clampCam(window.scrollY * PARALLAX);
@@ -380,35 +535,22 @@ export default function SystemLogBackground() {
       for (const n of nodes) {
         const f = edgeFade(n.y);
         if (f <= 0) continue;
-        if (n.hub) {
-          // hub: glyph ring + original line-art glyph + tiny quiet label
-          const ringColor =
-            sick && DATA_HUBS.has(n.hub) ? `rgba(${RED},${(0.5 * f).toFixed(3)})` : `rgba(${INK},${(0.18 * f).toFixed(3)})`;
-          ctx!.beginPath();
-          ctx!.arc(n.x, n.y, 11, 0, Math.PI * 2);
-          ctx!.strokeStyle = ringColor;
-          ctx!.lineWidth = 1;
-          ctx!.stroke();
-          drawGlyph(
-            ctx!,
-            n.hub,
-            n.x,
-            n.y,
-            9,
-            `rgba(${INK},${(0.35 * f).toFixed(3)})`,
-          );
-          ctx!.font = "9px 'JetBrains Mono', ui-monospace, monospace";
-          ctx!.textAlign = "center";
-          ctx!.textBaseline = "top";
-          ctx!.fillStyle = `rgba(${INK},${(0.35 * f).toFixed(3)})`;
-          ctx!.fillText(n.hub, n.x, n.y + 16);
-        } else {
-          const pulse = 1 + Math.sin(now * 0.9 + n.phase) * 0.18;
-          ctx!.beginPath();
-          ctx!.arc(n.x, n.y, n.r * pulse, 0, Math.PI * 2);
-          ctx!.fillStyle = `rgba(${INK},${(0.22 * f).toFixed(3)})`;
-          ctx!.fill();
-        }
+        // every node: faint ring + icon, no labels
+        const ringColor =
+          sick && DATA_HUBS.has(n.hub!) ? `rgba(${RED},${(0.4 * f).toFixed(3)})` : `rgba(${INK},${(0.18 * f).toFixed(3)})`;
+        ctx!.beginPath();
+        ctx!.arc(n.x, n.y, 8, 0, Math.PI * 2);
+        ctx!.strokeStyle = ringColor;
+        ctx!.lineWidth = 1;
+        ctx!.stroke();
+        drawGlyph(
+          ctx!,
+          n.hub!,
+          n.x,
+          n.y,
+          6.5,
+          `rgba(${INK},${(0.32 * f).toFixed(3)})`,
+        );
       }
     }
 
