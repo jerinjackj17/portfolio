@@ -13,14 +13,32 @@ interface NodeGeom {
 }
 
 const GEOM: NodeGeom[] = [
-  { id: "client", x: 60, y: 308, w: 180, h: 84 },
-  { id: "api-gateway", x: 360, y: 308, w: 180, h: 84 },
-  { id: "auth-svc", x: 660, y: 96, w: 180, h: 84 },
-  { id: "payments-svc", x: 660, y: 308, w: 180, h: 84 },
-  { id: "reports-svc", x: 660, y: 520, w: 180, h: 84 },
-  { id: "kafka", x: 960, y: 96, w: 180, h: 84 },
-  { id: "postgres", x: 960, y: 308, w: 180, h: 84 },
-  { id: "redis", x: 960, y: 520, w: 180, h: 84 },
+  // edge
+  { id: "cdn", x: 45, y: 70, w: 170, h: 72 },
+  { id: "waf", x: 45, y: 270, w: 170, h: 72 },
+  // client + gateway
+  { id: "client", x: 290, y: 270, w: 170, h: 72 },
+  { id: "api-gateway", x: 535, y: 270, w: 170, h: 72 },
+  // microservices (inside the kubernetes boundary)
+  { id: "auth-svc", x: 780, y: 70, w: 170, h: 72 },
+  { id: "payments-svc", x: 780, y: 270, w: 170, h: 72 },
+  { id: "reports-svc", x: 780, y: 470, w: 170, h: 72 },
+  { id: "fraud-svc", x: 780, y: 670, w: 170, h: 72 },
+  { id: "ledger-svc", x: 780, y: 870, w: 170, h: 72 },
+  // streaming
+  { id: "kafka", x: 1025, y: 270, w: 170, h: 72 },
+  { id: "notify-svc", x: 1025, y: 670, w: 170, h: 72 },
+  // data
+  { id: "postgres", x: 1270, y: 70, w: 170, h: 72 },
+  { id: "postgres-replica", x: 1270, y: 270, w: 170, h: 72 },
+  { id: "redis", x: 1270, y: 470, w: 170, h: 72 },
+  { id: "elasticsearch", x: 1270, y: 670, w: 170, h: 72 },
+  { id: "object-storage", x: 1270, y: 870, w: 170, h: 72 },
+  // delivery + observability band
+  { id: "jenkins", x: 290, y: 970, w: 170, h: 72 },
+  { id: "prometheus", x: 780, y: 970, w: 170, h: 72 },
+  { id: "grafana", x: 990, y: 970, w: 170, h: 72 },
+  { id: "jaeger", x: 1200, y: 970, w: 170, h: 72 },
 ];
 
 interface Road {
@@ -28,25 +46,42 @@ interface Road {
   d: string;
   from: string;
   to: string;
+  /** ambient roads are dashed context: drawn, never driven by trips */
+  ambient?: boolean;
 }
 
 const ROADS: Road[] = [
-  { id: "r-client-gw", d: "M 240 350 H 360", from: "client", to: "api-gateway" },
-  { id: "r-gw-auth", d: "M 540 350 H 600 V 138 H 660", from: "api-gateway", to: "auth-svc" },
-  { id: "r-gw-pay", d: "M 540 350 H 660", from: "api-gateway", to: "payments-svc" },
-  { id: "r-gw-rep", d: "M 540 350 H 600 V 562 H 660", from: "api-gateway", to: "reports-svc" },
-  { id: "r-pay-kafka", d: "M 840 350 H 900 V 138 H 960", from: "payments-svc", to: "kafka" },
-  { id: "r-pay-pg", d: "M 840 350 H 960", from: "payments-svc", to: "postgres" },
-  { id: "r-pay-redis", d: "M 840 350 H 900 V 562 H 960", from: "payments-svc", to: "redis" },
-  { id: "r-rep-pg", d: "M 840 562 H 900 V 350 H 960", from: "reports-svc", to: "postgres" },
-  { id: "r-auth-redis", d: "M 840 138 H 900 V 562 H 960", from: "auth-svc", to: "redis" },
+  // the request path: every road a trip can drive
+  { id: "r-client-gw", d: "M 460 306 H 535", from: "client", to: "api-gateway" },
+  { id: "r-gw-auth", d: "M 705 306 H 742 V 106 H 780", from: "api-gateway", to: "auth-svc" },
+  { id: "r-gw-pay", d: "M 705 306 H 780", from: "api-gateway", to: "payments-svc" },
+  { id: "r-gw-rep", d: "M 705 306 H 742 V 506 H 780", from: "api-gateway", to: "reports-svc" },
+  { id: "r-pay-kafka", d: "M 950 306 H 1025", from: "payments-svc", to: "kafka" },
+  { id: "r-pay-pg", d: "M 950 306 H 1090 V 106 H 1270", from: "payments-svc", to: "postgres" },
+  { id: "r-pay-redis", d: "M 950 306 H 1090 V 506 H 1270", from: "payments-svc", to: "redis" },
+  { id: "r-rep-pg", d: "M 950 506 H 1130 V 106 H 1270", from: "reports-svc", to: "postgres" },
+  { id: "r-auth-redis", d: "M 950 106 H 1130 V 506 H 1270", from: "auth-svc", to: "redis" },
+  // platform context: dashed, never driven
+  { id: "r-cdn-waf", d: "M 130 142 V 270", from: "cdn", to: "waf", ambient: true },
+  { id: "r-waf-client", d: "M 215 306 H 290", from: "waf", to: "client", ambient: true },
+  { id: "r-client-cdn", d: "M 375 270 V 106 H 215", from: "client", to: "cdn", ambient: true },
+  { id: "r-gw-fraud", d: "M 705 306 H 742 V 706 H 780", from: "api-gateway", to: "fraud-svc", ambient: true },
+  { id: "r-kafka-notify", d: "M 1110 342 V 670", from: "kafka", to: "notify-svc", ambient: true },
+  { id: "r-kafka-ledger", d: "M 1025 306 H 987 V 906 H 950", from: "kafka", to: "ledger-svc", ambient: true },
+  { id: "r-pg-replica", d: "M 1355 142 V 270", from: "postgres", to: "postgres-replica", ambient: true },
+  { id: "r-rep-es", d: "M 950 506 H 1170 V 706 H 1270", from: "reports-svc", to: "elasticsearch", ambient: true },
+  { id: "r-pay-s3", d: "M 950 306 H 1210 V 906 H 1270", from: "payments-svc", to: "object-storage", ambient: true },
+  { id: "r-graf-prom", d: "M 990 1006 H 950", from: "grafana", to: "prometheus", ambient: true },
+  { id: "r-jenkins-ship", d: "M 460 1006 H 760 V 962", from: "jenkins", to: "payments-svc", ambient: true },
 ];
 
 const ZONES: [string, number][] = [
-  ["client", 150],
-  ["gateway", 450],
-  ["services", 750],
-  ["data", 1050],
+  ["edge", 130],
+  ["client", 375],
+  ["gateway", 620],
+  ["kubernetes · eks", 865],
+  ["streaming", 1110],
+  ["data", 1355],
 ];
 
 const ISO_D = 7;
@@ -232,8 +267,8 @@ interface Sim {
   lastMs: number | null;
 }
 
-const DATA_NODES = ["postgres", "redis"];
-const SERVICE_NODES = ["auth-svc", "payments-svc", "reports-svc"];
+const DATA_NODES = ["postgres", "postgres-replica", "redis", "elasticsearch", "object-storage"];
+const SERVICE_NODES = ["auth-svc", "payments-svc", "reports-svc", "fraud-svc", "ledger-svc", "notify-svc"];
 
 function initSim(): Sim {
   const nodes: Record<string, NodeSim> = {};
@@ -1109,7 +1144,7 @@ export default function SystemPlayground() {
       <div className="mt-3 overflow-x-auto pb-1">
         <div className="relative min-w-[900px]">
           <svg
-            viewBox="0 0 1200 620"
+            viewBox="0 0 1560 1080"
             className="block w-full"
             role="img"
             aria-label="Interactive system diagram. Compose a request above and watch it travel."
@@ -1128,6 +1163,45 @@ export default function SystemPlayground() {
                 {label.toUpperCase()}
               </text>
             ))}
+            {/* kubernetes boundary around the services column */}
+            <g aria-hidden="true">
+              <rect
+                x={760}
+                y={50}
+                width={210}
+                height={912}
+                fill="none"
+                stroke="#1A1815"
+                strokeWidth={1.25}
+                strokeDasharray="8 6"
+                opacity={0.35}
+                rx={10}
+              />
+            </g>
+            <text
+              x={375}
+              y={948}
+              textAnchor="middle"
+              fontSize={11}
+              fill="#A39A8D"
+              className="font-mono"
+              style={{ letterSpacing: "0.2em" }}
+              aria-hidden="true"
+            >
+              DELIVERY
+            </text>
+            <text
+              x={1075}
+              y={948}
+              textAnchor="middle"
+              fontSize={11}
+              fill="#A39A8D"
+              className="font-mono"
+              style={{ letterSpacing: "0.2em" }}
+              aria-hidden="true"
+            >
+              OBSERVABILITY
+            </text>
             {ROADS.map((r) => (
               <path
                 key={r.id}
@@ -1137,7 +1211,8 @@ export default function SystemPlayground() {
                 stroke="#1A1815"
                 strokeWidth={1.5}
                 strokeLinecap="round"
-                opacity={0.5}
+                strokeDasharray={r.ambient ? "6 5" : undefined}
+                opacity={r.ambient ? 0.28 : 0.5}
               />
             ))}
             {/* ambient traffic: full round trips, dimmer and slower */}
