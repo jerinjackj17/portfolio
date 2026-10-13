@@ -383,7 +383,7 @@ export default function SystemLogBackground() {
         if (n.hub) {
           // hub: glyph ring + original line-art glyph + tiny quiet label
           const ringColor =
-            sick && DATA_HUBS.has(n.hub) ? `rgba(${RED},${(0.5 * f).toFixed(3)})` : `rgba(${INK},${(0.28 * f).toFixed(3)})`;
+            sick && DATA_HUBS.has(n.hub) ? `rgba(${RED},${(0.5 * f).toFixed(3)})` : `rgba(${INK},${(0.18 * f).toFixed(3)})`;
           ctx!.beginPath();
           ctx!.arc(n.x, n.y, 11, 0, Math.PI * 2);
           ctx!.strokeStyle = ringColor;
@@ -395,12 +395,12 @@ export default function SystemLogBackground() {
             n.x,
             n.y,
             9,
-            `rgba(${INK},${(0.5 * f).toFixed(3)})`,
+            `rgba(${INK},${(0.35 * f).toFixed(3)})`,
           );
           ctx!.font = "9px 'JetBrains Mono', ui-monospace, monospace";
           ctx!.textAlign = "center";
           ctx!.textBaseline = "top";
-          ctx!.fillStyle = `rgba(${INK},${(0.5 * f).toFixed(3)})`;
+          ctx!.fillStyle = `rgba(${INK},${(0.35 * f).toFixed(3)})`;
           ctx!.fillText(n.hub, n.x, n.y + 16);
         } else {
           const pulse = 1 + Math.sin(now * 0.9 + n.phase) * 0.18;
