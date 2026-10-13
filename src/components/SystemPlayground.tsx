@@ -579,7 +579,7 @@ function TripVehicle({
       trail.current = [
         ...trail.current.filter((p) => now - p.born < PUFF_LIFE),
         ...fresh,
-      ];
+      ].slice(-48);
       last.current = { x: ex, y: ey };
     }
   });

@@ -548,7 +548,7 @@ export default function SystemLogBackground() {
       camTarget = clampCam(window.scrollY * PARALLAX);
       camY += (camTarget - camY) * 0.08;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, -camY * dpr);
-      ctx!.clearRect(0, -camY, W, H);
+      ctx!.clearRect(0, camY, W, H);
       drawWires();
       drawNodes(now);
       drawPulse();
