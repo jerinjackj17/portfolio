@@ -10,7 +10,7 @@ export default function Projects() {
   return (
     <section
       id="projects"
-      className="mx-auto max-w-5xl scroll-mt-24 px-5 pt-20 md:px-8 md:pt-28"
+      className="mx-auto max-w-5xl scroll-mt-24 px-5 pt-24 md:px-8 md:pt-36"
     >
       <SectionHeader title="Projects" />
       <p className="mt-4 font-mono text-xs text-faint">

@@ -165,28 +165,40 @@ interface Pt {
   y: number;
 }
 
-interface FlightV {
-  pts: Pt[];
-  cum: number[];
-  total: number;
-  outLen: number;
-  dist: number;
-  dwellLeft: number;
+interface Trip {
+  id: number;
+  /** true = the visitor's composed request (the star). false = ambient traffic. */
+  user: boolean;
   kind: VKind;
   route: RouteDef;
   method: string;
   endpoint: string;
+  /** simulated latency shown on the response card */
   ms: number;
-  /** wall-clock delivery timer; the response lands on this, not on the animation */
-  timerId: number | null;
-}
-
-interface AmbientV {
-  id: number;
-  road: string;
-  t: number;
+  /** full round-trip polyline: outbound legs, then the reverse path back */
+  pts: Pt[];
+  cum: number[];
+  total: number;
+  outLen: number;
+  /** cumulative distances of intermediate node stops on the way out */
+  stops: number[];
+  stopIdx: number;
+  /** which stops trigger a pause (user: every node; ambient: gateway only in a flood) */
+  pauseStops: boolean[];
+  pauseLeft: number;
+  pauseMs: number;
+  dist: number;
+  /** processing beat at the data node before the return leg */
+  processLeft: number;
+  processMs: number;
+  processAge: number;
+  pulse: { x: number; y: number } | null;
+  /** px per second along the path */
   speed: number;
-  kind: VKind;
+  /** the user's car leaves a two-color trail; ambient cars leave none */
+  trail: boolean;
+  dim: number;
+  scale: number;
 }
 
 interface NodeSim {
@@ -198,8 +210,10 @@ interface NodeSim {
 interface Sim {
   scenario: Scenario;
   auto: boolean;
-  flight: FlightV | null;
-  ambient: AmbientV[];
+  /** active round trips: the visitor's requests */
+  trips: Trip[];
+  /** active round trips: ambient traffic (full out-and-back, dimmer, slower) */
+  ambient: Trip[];
   nodes: Record<string, NodeSim>;
   response: {
     route: RouteDef;
@@ -226,7 +240,7 @@ function initSim(): Sim {
   return {
     scenario: "healthy",
     auto: true,
-    flight: null,
+    trips: [],
     ambient: [],
     nodes,
     response: null,
@@ -271,6 +285,159 @@ function locate(pts: Pt[], cum: number[], d: number): { x: number; y: number; an
   return { x, y, ang };
 }
 
+/* ================= round-trip builder ================= */
+/* A trip drives the full route: client → gateway → service → data node
+   (pausing briefly at each node), a processing beat at the data node,
+   then the reverse path home. The response card lands when the car
+   arrives back at the client. Outbound and return are different colors. */
+
+function assembleTrip(
+  id: number,
+  user: boolean,
+  method: string,
+  endpoint: string,
+  route: RouteDef,
+  scenario: Scenario,
+  kind: VKind,
+  samples: Record<string, Pt[]>,
+): Trip | null {
+  const raw: Pt[] = [];
+  const legEndIdx: number[] = [];
+  for (const rid of route.outbound) {
+    const pts = samples[rid];
+    if (!pts) return null;
+    for (let i = 0; i < pts.length; i++) {
+      if (raw.length > 0 && i === 0) continue;
+      raw.push(pts[i]);
+    }
+    legEndIdx.push(raw.length - 1);
+  }
+  const back = [...raw].reverse().slice(1);
+  const full = [...raw, ...back];
+  const cum: number[] = [0];
+  for (let i = 1; i < full.length; i++) {
+    const a = full[i - 1];
+    const b = full[i];
+    cum.push(cum[i - 1] + Math.hypot(b.x - a.x, b.y - a.y));
+  }
+  const total = cum[cum.length - 1];
+  const outLen = cum[raw.length - 1];
+  // intermediate node stops on the way out (gateway, then the service)
+  const stops = legEndIdx.slice(0, -1).map((i) => cum[i]);
+
+  const lastRoad = ROADS.find(
+    (r) => r.id === route.outbound[route.outbound.length - 1],
+  );
+  const dataGeom = GEOM.find((g) => g.id === lastRoad?.to);
+  const pulse = dataGeom
+    ? { x: dataGeom.x + dataGeom.w / 2, y: dataGeom.y + dataGeom.h / 2 }
+    : null;
+
+  const ms = latencyFor(scenario);
+  const pauseMs = 250;
+  // slow-db: the car visibly waits at the data node for the incident latency
+  const processMs = !user
+    ? 300
+    : scenario === "slow-db"
+      ? 2400
+      : scenario === "flood"
+        ? 250
+        : 450;
+  const nodePauseTotal = user ? stops.length * pauseMs : 0;
+  // the whole journey takes a few watchable seconds; the user's car is quicker
+  const targetMs = user
+    ? scenario === "slow-db"
+      ? 5200
+      : scenario === "flood"
+        ? 2600
+        : 3800
+    : scenario === "flood"
+      ? 3400
+      : 5600;
+  const driveMs = Math.max(900, targetMs - nodePauseTotal - processMs);
+  // the per-leg easing averages ~0.76, so compensate to hit the target
+  const speed = total / ((driveMs / 1000) * 0.76);
+
+  return {
+    id,
+    user,
+    kind,
+    route,
+    method,
+    endpoint,
+    ms,
+    pts: full,
+    cum,
+    total,
+    outLen,
+    stops,
+    stopIdx: 0,
+    pauseStops: user
+      ? stops.map(() => true)
+      : stops.map((_, i) => scenario === "flood" && i === 0),
+    pauseLeft: 0,
+    pauseMs: user ? pauseMs : 300 + Math.random() * 600,
+    dist: 0,
+    processLeft: 0,
+    processMs,
+    processAge: 0,
+    pulse,
+    speed,
+    trail: user,
+    dim: user ? 1 : 0.5,
+    scale: user ? 1.3 : 0.85,
+  };
+}
+
+/** advance one trip by a 150ms tick. Returns the trip and whether it arrived home. */
+function stepTrip(
+  t: Trip,
+  frozen: boolean,
+): { trip: Trip; arrived: boolean } {
+  if (frozen) {
+    return {
+      trip: { ...t, dist: t.total, pauseLeft: 0, processLeft: 0 },
+      arrived: true,
+    };
+  }
+  let { dist, pauseLeft, processLeft, processAge, stopIdx } = t;
+  let arrived = false;
+  const ease = (d: number, len: number) => {
+    const p = Math.min(1, Math.max(0, d / Math.max(1, len)));
+    return 0.35 + 0.65 * Math.sin(Math.PI * p);
+  };
+  if (pauseLeft > 0) {
+    // held at a node: you can see it wait
+    pauseLeft -= 150;
+  } else if (dist < t.outLen) {
+    const step = t.speed * 0.15 * ease(dist, t.outLen);
+    const stop = t.stops[stopIdx];
+    if (stop != null && dist + step >= stop) {
+      dist = stop;
+      if (t.pauseStops[stopIdx]) pauseLeft = t.pauseMs;
+      stopIdx += 1;
+    } else {
+      dist = Math.min(t.outLen, dist + step);
+    }
+    if (dist >= t.outLen) {
+      processLeft = t.processMs;
+      processAge = 0;
+    }
+  } else if (processLeft > 0) {
+    // processing beat at the data node; the pulse rings play here
+    processLeft -= 150;
+    processAge += 150;
+  } else if (dist < t.total) {
+    const step = t.speed * 0.15 * ease(dist - t.outLen, t.total - t.outLen);
+    dist = Math.min(t.total, dist + step);
+    if (dist >= t.total) arrived = true;
+  }
+  return {
+    trip: { ...t, dist, pauseLeft, processLeft, processAge, stopIdx },
+    arrived,
+  };
+}
+
 /* ================= line-art vehicles ================= */
 
 function CarArt({ solid }: { solid?: boolean }) {
@@ -312,18 +479,20 @@ function VehicleMark({ kind }: { kind: VKind }) {
 }
 
 /* ============ the hero car: the visitor's own request ============ */
-/* Accent body, a touch larger, dark outline. Renders a fading smoke  */
-/* trail from the exhaust so the eye can track the full route. This  */
-/* is presentation only; the flight timing logic is untouched.        */
+/* Accent body on the way out, return-green on the way back, a touch    */
+/* larger, dark outline. The exhaust trail takes the same color as the  */
+/* car, so outbound and return read as two different journeys.          */
 
-function HeroCarArt() {
+const RETURN_GREEN = "#2e7d32";
+
+function HeroCarArt({ tone }: { tone: "out" | "back" }) {
   return (
     <g
       stroke="#1A1815"
       strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
-      fill="var(--accent)"
+      fill={tone === "out" ? "var(--accent)" : RETURN_GREEN}
       transform="scale(1.3)"
     >
       <path d="M-11 3 L-11 -2 L-5 -2 L-2 -6 L6 -6 L9 -2 L11 -2 L11 3 Z" />
@@ -338,16 +507,19 @@ interface Puff {
   x: number;
   y: number;
   born: number;
+  color: string;
 }
 
 const PUFF_LIFE = 1300;
 
-function FlightVehicle({
+function TripVehicle({
+  trip,
   x,
   y,
   ang,
   reduceMotion,
 }: {
+  trip: Trip;
   x: number;
   y: number;
   ang: number;
@@ -357,6 +529,9 @@ function FlightVehicle({
   const idRef = useRef(0);
   const last = useRef<{ x: number; y: number } | null>(null);
 
+  const tone: "out" | "back" = trip.dist <= trip.outLen ? "out" : "back";
+  const puffColor = tone === "out" ? "var(--accent)" : RETURN_GREEN;
+
   const rad = (ang * Math.PI) / 180;
   const ex = x - 17 * Math.cos(rad);
   const ey = y - 17 * Math.sin(rad);
@@ -364,14 +539,14 @@ function FlightVehicle({
   // Sample the exhaust after each render (the parent tick re-renders
   // ~7x/sec while the sim runs). Presentation only.
   useEffect(() => {
-    if (reduceMotion) return;
+    if (reduceMotion || !trip.trail) return;
     const l = last.current;
     if (!l || Math.hypot(ex - l.x, ey - l.y) > 12) {
       idRef.current += 1;
       const now = Date.now();
       trail.current = [
         ...trail.current.filter((p) => now - p.born < PUFF_LIFE),
-        { id: idRef.current, x: ex, y: ey, born: now },
+        { id: idRef.current, x: ex, y: ey, born: now, color: puffColor },
       ];
       last.current = { x: ex, y: ey };
     }
@@ -381,7 +556,7 @@ function FlightVehicle({
   const puffs = trail.current.filter((p) => now - p.born < PUFF_LIFE);
 
   return (
-    <g>
+    <g opacity={trip.dim}>
       {!reduceMotion &&
         puffs.map((p) => {
           const age = (now - p.born) / PUFF_LIFE;
@@ -391,15 +566,19 @@ function FlightVehicle({
               cx={p.x.toFixed(1)}
               cy={p.y.toFixed(1)}
               r={(2 + age * 5).toFixed(1)}
-              fill="#1A1815"
-              opacity={(0.22 * (1 - age)).toFixed(2)}
+              fill={p.color}
+              opacity={(0.5 * (1 - age)).toFixed(2)}
             />
           );
         })}
       <g
-        transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${ang.toFixed(1)})`}
+        transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${ang.toFixed(1)}) scale(${trip.scale})`}
       >
-        <HeroCarArt />
+        {trip.user ? (
+          <HeroCarArt tone={tone} />
+        ) : (
+          <VehicleMark kind={trip.kind} />
+        )}
       </g>
     </g>
   );
@@ -526,8 +705,6 @@ export default function SystemPlayground() {
   const [selected, setSelected] = useState<string | null>(null);
   const roadRefs = useRef(new Map<string, SVGPathElement>());
   const samplesRef = useRef<Record<string, Pt[]>>({});
-  const lengthsRef = useRef<Record<string, number>>({});
-  const flightTimerRef = useRef<number | null>(null);
   const responseRef = useRef<HTMLDivElement>(null);
   const lastSeenResponse = useRef<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
@@ -536,8 +713,6 @@ export default function SystemPlayground() {
   // clear any pending timers on unmount
   useEffect(() => {
     return () => {
-      if (flightTimerRef.current != null)
-        window.clearTimeout(flightTimerRef.current);
       if (flashTimer.current != null) window.clearTimeout(flashTimer.current);
     };
   }, []);
@@ -558,12 +733,10 @@ export default function SystemPlayground() {
 
   useEffect(() => {
     const samples: Record<string, Pt[]> = {};
-    const lengths: Record<string, number> = {};
     for (const road of ROADS) {
       const el = roadRefs.current.get(road.id);
       if (!el) continue;
       const len = el.getTotalLength();
-      lengths[road.id] = len;
       const pts: Pt[] = [];
       const n = 32;
       for (let i = 0; i <= n; i++) {
@@ -573,86 +746,71 @@ export default function SystemPlayground() {
       samples[road.id] = pts;
     }
     samplesRef.current = samples;
-    lengthsRef.current = lengths;
   }, []);
 
   /* ---- simulation tick ---- */
   useEffect(() => {
     const id = window.setInterval(() => {
       setSim((s) => {
-        const lengths = lengthsRef.current;
         const frozen = !!reduceMotion;
-        let { flight, ambient, nextId } = s;
-        const response = s.response;
+        let { trips, ambient, nextId } = s;
+        let newResponse = s.response;
 
-        // flight: advance the composed request, eased like a physical thing
-        let newResponse = response;
-        if (flight) {
-          const baseSpeed =
-            s.scenario === "slow-db" ? 45 : s.scenario === "flood" ? 150 : 130;
-          const advance = (d: number, legStart: number, legEnd: number) => {
-            const p = Math.min(
-              1,
-              Math.max(0, (d - legStart) / Math.max(1, legEnd - legStart)),
-            );
-            // ease: unhurried at the ends of each leg, quick in the middle
-            const ease = frozen ? 1 : 0.35 + 0.65 * Math.sin(Math.PI * p);
-            return Math.min(legEnd, d + baseSpeed * 0.15 * ease);
-          };
-          if (frozen) {
-            // reduced motion: resolve the round trip near-instantly
-            flight =
-              flight.dist < flight.outLen
-                ? { ...flight, dist: flight.outLen, dwellLeft: 0 }
-                : { ...flight, dist: flight.total, dwellLeft: 0 };
-          } else if (flight.dist < flight.outLen) {
-            flight = { ...flight, dist: advance(flight.dist, 0, flight.outLen) };
-          } else if (flight.dwellLeft > 0) {
-            flight = { ...flight, dwellLeft: flight.dwellLeft - 150 };
-          } else {
-            flight = {
-              ...flight,
-              dist: advance(flight.dist, flight.outLen, flight.total),
-            };
+        // round trips: the visitor's requests drive out, pause at nodes,
+        // take a processing beat at the data node, then drive home.
+        // The response card lands when a car arrives back at the client.
+        const stepAll = (list: Trip[]) => {
+          const kept: Trip[] = [];
+          for (const t of list) {
+            const { trip, arrived } = stepTrip(t, frozen);
+            if (arrived) {
+              if (trip.user) {
+                newResponse = {
+                  route: trip.route,
+                  method: trip.method,
+                  endpoint: trip.endpoint,
+                  ms: trip.ms,
+                  key: nextId,
+                };
+                nextId += 1;
+              }
+            } else {
+              kept.push(trip);
+            }
           }
-          if (flight.dist >= flight.total) {
-            newResponse = {
-              route: flight.route,
-              method: flight.method,
-              endpoint: flight.endpoint,
-              ms: flight.ms,
-              key: nextId,
-            };
-            nextId += 1;
-            flight = null;
-          }
-        }
+          return kept;
+        };
+        trips = stepAll(trips);
 
-        // ambient traffic: sparse by default, floods on demand
-        const maxAmbient = s.scenario === "flood" ? 36 : s.scenario === "slow-db" ? 4 : 8;
-        ambient = ambient
-          .map((v) => {
-            if (frozen) return v;
-            const len = lengths[v.road] ?? 200;
-            const t = Math.min(1, Math.max(0, v.t));
-            const ease = 0.7 + 0.3 * Math.sin(Math.PI * t);
-            return { ...v, t: v.t + ((v.speed * 0.15) / len) * ease };
-          })
-          .filter((v) => v.t < 1);
-        if (s.auto && !frozen && ambient.length < maxAmbient && Math.random() < (s.scenario === "flood" ? 0.75 : 0.3)) {
-          const road = ROADS[Math.floor(Math.random() * ROADS.length)];
+        // ambient traffic: full round trips too, dimmer and slower than the
+        // visitor's car so the composed request is always the star
+        const samples = samplesRef.current;
+        const maxAmbient =
+          s.scenario === "flood" ? 22 : s.scenario === "slow-db" ? 3 : 6;
+        ambient = stepAll(ambient);
+        if (
+          s.auto &&
+          !frozen &&
+          ambient.length < maxAmbient &&
+          Math.random() < (s.scenario === "flood" ? 0.6 : 0.25)
+        ) {
+          const keys = Object.keys(ROUTES);
+          const route = ROUTES[keys[Math.floor(Math.random() * keys.length)]];
           const kinds: VKind[] = ["car", "car", "bike"];
-          ambient = [
-            ...ambient,
-            {
-              id: nextId,
-              road: road.id,
-              t: 0,
-              speed: 55 + Math.random() * 40,
-              kind: kinds[Math.floor(Math.random() * kinds.length)],
-            },
-          ];
-          nextId += 1;
+          const trip = assembleTrip(
+            nextId,
+            false,
+            "",
+            "",
+            route,
+            s.scenario,
+            kinds[Math.floor(Math.random() * kinds.length)],
+            samples,
+          );
+          if (trip) {
+            ambient = [...ambient, trip];
+            nextId += 1;
+          }
         }
 
         // metrics drift toward scenario targets
@@ -685,7 +843,7 @@ export default function SystemPlayground() {
           nodes[sn.id] = n;
         }
 
-        return { ...s, flight, ambient, nodes, response: newResponse, nextId };
+        return { ...s, trips, ambient, nodes, response: newResponse, nextId };
       });
     }, 150);
     return () => window.clearInterval(id);
@@ -700,76 +858,29 @@ export default function SystemPlayground() {
     const route = ROUTES[`${method} ${endpoint}`];
     if (!route) return;
     const samples = samplesRef.current;
-    const raw: Pt[] = [];
-    for (const rid of route.outbound) {
-      const pts = samples[rid];
-      if (!pts) return;
-      for (let i = 0; i < pts.length; i++) {
-        if (raw.length > 0 && i === 0) continue;
-        raw.push(pts[i]);
-      }
-    }
-    const back = [...raw].reverse().slice(1);
-    const full = [...raw, ...back];
-    const cum: number[] = [0];
-    for (let i = 1; i < full.length; i++) {
-      const a = full[i - 1];
-      const b = full[i];
-      cum.push(cum[i - 1] + Math.hypot(b.x - a.x, b.y - a.y));
-    }
-    const total = cum[cum.length - 1];
-    const outLen = cum[raw.length - 1];
-    const ms = latencyFor(sim.scenario);
-    const dwell = sim.scenario === "slow-db" ? 1800 : 450;
-    // The response is delivered on a wall-clock timer of exactly the simulated
-    // latency, decoupled from the incident lifecycle and from the vehicle
-    // animation (which crawls during slow-db). The incident clock keeps ticking
-    // until "fix everything"; the request itself always completes on time.
-    const flight: FlightV = {
-      pts: full,
-      cum,
-      total,
-      outLen,
-      dist: 0,
-      dwellLeft: dwell,
-      kind: METHOD_VEHICLE[method],
-      route,
-      method,
-      endpoint,
-      ms,
-      timerId: null,
-    };
-    const timerId = window.setTimeout(() => {
-      flightTimerRef.current = null;
-      setSim((s) => {
-        const f = s.flight;
-        // stale timer (a newer flight already resolved) or already delivered
-        if (!f || f.timerId !== timerId) return s;
-        return {
-          ...s,
-          flight: null,
-          response: {
-            route: f.route,
-            method: f.method,
-            endpoint: f.endpoint,
-            ms: f.ms,
-            key: s.nextId,
-          },
-          nextId: s.nextId + 1,
-        };
-      });
-    }, ms);
-    flight.timerId = timerId;
-    flightTimerRef.current = timerId;
-    setSim((s) =>
-      s.flight
-        ? s
-        : {
-            ...s,
-            response: null,
-            flight,
-          },
-    );
+    setSim((s) => {
+      const userTrips = s.trips.filter((t) => t.user);
+      // one request at a time normally; a flood lets several fly at once
+      if (userTrips.length > 0 && s.scenario !== "flood") return s;
+      if (userTrips.length >= 4) return s;
+      const trip = assembleTrip(
+        s.nextId,
+        true,
+        method,
+        endpoint,
+        route,
+        s.scenario,
+        METHOD_VEHICLE[method],
+        samples,
+      );
+      if (!trip) return s;
+      return {
+        ...s,
+        trips: [...s.trips, trip],
+        response: userTrips.length === 0 ? null : s.response,
+        nextId: s.nextId + 1,
+      };
+    });
   };
 
   // Auto-traffic toggle with a brief status flash so the effect is
@@ -812,8 +923,10 @@ export default function SystemPlayground() {
       ? Math.floor((Date.now() - sim.incidentStart) / 1000)
       : null;
 
+  const userActive = sim.trips.some((t) => t.user);
+
   const statusText = (): string => {
-    if (sim.flight) return "request on its way…";
+    if (userActive) return "request on its way…";
     if (sim.scenario === "slow-db")
       return `the database is slow. incident open · ${incidentSecs ?? 0}s`;
     if (sim.scenario === "flood")
@@ -832,8 +945,6 @@ export default function SystemPlayground() {
   const selectedNode = selected
     ? (systemNodes.find((n) => n.id === selected) ?? null)
     : null;
-
-  const flightPos = sim.flight ? locate(sim.flight.pts, sim.flight.cum, sim.flight.dist) : null;
 
   return (
     <figure className="scroll-mt-24">
@@ -879,10 +990,10 @@ export default function SystemPlayground() {
           <button
             type="button"
             onClick={send}
-            disabled={!!sim.flight}
+            disabled={userActive && sim.scenario !== "flood"}
             className="border border-ink bg-ink px-6 py-1.5 font-mono text-xs font-medium uppercase tracking-[0.18em] text-paper transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {sim.flight ? "on its way…" : "send →"}
+            {userActive ? "on its way…" : "send →"}
           </button>
           <button
             type="button"
@@ -891,7 +1002,7 @@ export default function SystemPlayground() {
           >
             auto traffic: {sim.auto ? "on" : "off"}
           </button>
-          {sim.flight && (
+          {userActive && (
             <span className="tnum font-mono text-[11px] uppercase tracking-[0.16em] text-flame-deep">
               request on the road…
             </span>
@@ -974,37 +1085,57 @@ export default function SystemPlayground() {
                 opacity={0.5}
               />
             ))}
-            {/* ambient vehicles */}
+            {/* ambient traffic: full round trips, dimmer and slower */}
             {sim.ambient.map((v) => {
-              const pts = samplesRef.current[v.road];
-              if (!pts) return null;
-              const f = Math.min(0.999, Math.max(0, v.t)) * (pts.length - 1);
-              const i = Math.floor(f);
-              const a = pts[i];
-              const b = pts[Math.min(pts.length - 1, i + 1)];
-              const frac = f - i;
-              const x = a.x + (b.x - a.x) * frac;
-              const y = a.y + (b.y - a.y) * frac;
-              const ang = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+              const p = locate(v.pts, v.cum, v.dist);
               return (
-                <g
+                <TripVehicle
                   key={v.id}
-                  transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${ang.toFixed(1)})`}
-                  opacity={0.75}
-                >
-                  <VehicleMark kind={v.kind} />
+                  trip={v}
+                  x={p.x}
+                  y={p.y}
+                  ang={p.ang}
+                  reduceMotion={reduceMotion}
+                />
+              );
+            })}
+            {/* the visitor's requests: accent car out, green car back */}
+            {sim.trips.map((t) => {
+              const p = locate(t.pts, t.cum, t.dist);
+              return (
+                <g key={t.id}>
+                  {t.pulse && t.processLeft > 0 && (
+                    <g aria-hidden="true">
+                      {[0, 1, 2].map((k) => {
+                        const age = t.processAge - k * 260;
+                        if (age < 0) return null;
+                        const r = 12 + age / 22;
+                        const o = Math.max(0, 0.55 - age / 1100);
+                        return (
+                          <circle
+                            key={k}
+                            cx={t.pulse!.x}
+                            cy={t.pulse!.y}
+                            r={r.toFixed(1)}
+                            fill="none"
+                            stroke="var(--accent)"
+                            strokeWidth={1.5}
+                            opacity={o.toFixed(2)}
+                          />
+                        );
+                      })}
+                    </g>
+                  )}
+                  <TripVehicle
+                    trip={t}
+                    x={p.x}
+                    y={p.y}
+                    ang={p.ang}
+                    reduceMotion={reduceMotion}
+                  />
                 </g>
               );
             })}
-            {/* the composed request: the hero car, with a smoke trail */}
-            {sim.flight && flightPos && (
-              <FlightVehicle
-                x={flightPos.x}
-                y={flightPos.y}
-                ang={flightPos.ang}
-                reduceMotion={reduceMotion}
-              />
-            )}
             {GEOM.map((g) => (
               <SysNode
                 key={g.id}
@@ -1017,8 +1148,23 @@ export default function SystemPlayground() {
           </svg>
         </div>
       </div>
-      <p className="mt-1 font-mono text-[11px] text-faint sm:hidden">
-        → scroll sideways to see the whole system. tap a node to read its story.
+      <p className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-[11px] text-faint">
+        <span className="sm:hidden">
+          → scroll sideways to see the whole system. tap a node to read its
+          story.
+        </span>
+        <span className="flex items-center gap-2">
+          <span aria-hidden="true" className="inline-block h-2 w-2 bg-flame" />
+          outbound
+        </span>
+        <span className="flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="inline-block h-2 w-2"
+            style={{ background: RETURN_GREEN }}
+          />
+          return
+        </span>
       </p>
 
       {/* response card */}
@@ -1055,7 +1201,7 @@ export default function SystemPlayground() {
           </motion.div>
         ) : (
           <p className="font-mono text-sm text-faint">
-            {sim.flight
+            {userActive
               ? "watch it drive the round trip…"
               : "your response will land here. pick a method, pick an endpoint, hit send."}
           </p>
