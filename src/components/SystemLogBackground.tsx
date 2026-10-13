@@ -1,433 +1,406 @@
-import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useRef } from "react";
 import { useReducedMotion } from "framer-motion";
 
-/* Living page background, aquarium-style: backend log lines, tech chips,
-   and tiny code snippets drift behind the content. Like fish, they scatter
-   away from the cursor (or a touch point), briefly brighten, then settle
-   back into the drift. The layer is pointer-events none; the cursor is
-   tracked at window level.
+/* Abstract living background: a faint network-topology field drawn on a
+   single canvas. Thin hairline wires connect soft nodes; small packets
+   travel the wires like requests flowing through a system. Packets scatter
+   away from the cursor (or a touch point), brighten, then settle back.
 
-   It also reacts to the playground via `jj:scenario` events: "slow-db" /
-   "flood" incidents infect the log stream with warnings; a return to
-   "healthy" plays a short recovery beat before calming down.
+   Reacts to the playground via `jj:scenario` events: "slow-db" slows the
+   packets and tints them amber/red; "flood" spawns more packets; a return
+   to "healthy" sweeps a green pulse across the field, then calm.
 
-   Accent-colored keywords resolve through --accent, so the theme switcher
-   recolors them too. Under prefers-reduced-motion the layer is fully static. */
+   Zero text in this layer, ever — letterforms live only in the foreground,
+   so the background can never congest the headings. Under
+   prefers-reduced-motion: one static faint frame, no animation. */
 
 type Mode = "calm" | "slow-db" | "flood" | "recovering";
-type Kind = "log" | "chip" | "code";
 
-interface BgItem {
-  id: number;
-  kind: Kind;
-  xPct: number;
-  yPct: number;
+interface TNode {
+  x: number;
+  y: number;
+  r: number;
   phase: number;
-  driftSpeed: number;
-  text: string;
-  fadeT: number; // seconds (performance.now()/1000) of last text change
+}
+interface Packet {
+  from: number;
+  to: number;
+  t: number; // 0..1 along the edge
+  speed: number; // px per second (base)
+  accent: boolean;
+  warn: boolean; // tinted amber/red during slow-db
+  ox: number;
+  oy: number;
+  bright: number; // eased 0..1 cursor brightness
 }
 
-const CALM: string[] = [
-  "INFO  o.s.b.w.embedded.tomcat : Tomcat started on port 8080 (http)",
-  "INFO  o.s.boot.SpringApplication : Started PortfolioApp in 2.341 seconds",
-  "INFO  com.zaxxer.hikari.HikariDataSource : HikariPool-1 - Pool stats (total=10, active=2, idle=8)",
-  "INFO  j.j.api.RequestLog : GET /payments/balance -> 200 in 96ms",
-  "INFO  o.a.k.c.c.internals.ConsumerCoordinator : [Consumer clientId=payments-1] 42 records from audit-events",
-  "INFO  j.j.api.RequestLog : POST /payments/charge -> 201 in 210ms",
-  "INFO  [javac] compiling 14 source files to /target/classes",
-  "INFO  j.j.rag.Pipeline : chunk -> embed -> retrieve -> generate in 412ms (top-k 4, citations 3)",
-  "INFO  j.j.api.RequestLog : GET /health -> 200 in 12ms",
-  "INFO  o.a.k.c.producer : [Producer clientId=audit-1] 128 records sent to audit-events",
-  "INFO  j.j.api.RequestLog : DELETE /cache -> 204 in 30ms",
-  "INFO  com.zaxxer.hikari.HikariDataSource : HikariPool-1 - Pool stats (total=10, active=1, idle=9)",
-  "INFO  j.j.api.RequestLog : PUT /payments/pay_42 -> 200 in 61ms",
-  "INFO  o.h.engine.jdbc.batch : batching 25 statements :: payments",
-];
-
-const SLOW_DB: string[] = [
-  "WARN  com.zaxxer.hikari.pool.HikariPool : HikariPool-1 - Thread starvation or clock leap detected",
-  "WARN  j.j.db.SlowQuery : SLOW QUERY 2431ms :: select * from payments where merchant_id = ?",
-  "WARN  com.zaxxer.hikari.pool.HikariPool : HikariPool-1 - Pool stats (total=10, active=10, idle=0, waiting=14)",
-  "ERROR j.j.db.QueryTimeout : query timed out after 3000ms :: /reports/monthly",
-  "WARN  j.j.db.SlowQuery : SLOW QUERY 1980ms :: select * from audit_events order by ts desc",
-];
-
-const FLOOD: string[] = [
-  "WARN  j.j.api.RateLimit : 429 throttled :: POST /payments/charge",
-  "WARN  j.j.api.RequestLog : POST /payments/charge -> 200 in 1840ms (queue depth 312)",
-  "INFO  o.a.k.c.producer : [Producer clientId=audit-1] 1204 records sent to audit-events",
-  "WARN  j.j.api.RateLimit : 429 throttled :: GET /search",
-];
-
-const RECOVERING: string[] = [
-  "INFO  com.zaxxer.hikari.HikariDataSource : HikariPool-1 - Pool stats (total=10, active=1, idle=9) :: pool healthy",
-  "INFO  j.j.api.RequestLog : GET /payments/balance -> 200 in 38ms :: p99 back to 42ms",
-  "INFO  j.j.ops.Incident : incident resolved :: all clear",
-];
-
-const POOLS: Record<Mode, string[]> = {
-  calm: CALM,
-  "slow-db": SLOW_DB,
-  flood: FLOOD,
-  recovering: RECOVERING,
-};
-
-const CHIPS: string[] = [
-  "java", "spring boot", "kafka", "postgres",
-  "redis", "docker", "kubernetes", "react",
-  "python", "aws", "maven", "junit",
-];
-
-const CODE: string[] = [
-  "public ResponseEntity<Charge> charge(@RequestBody ChargeReq req) {",
-  '@KafkaListener(topics = "audit-events", groupId = "billing")',
-  "select /*+ INDEX(p idx_pay_merchant) */ * from payments p where p.merchant_id = ?",
-];
-
-const HOT = ["ERROR", "SLOW QUERY", "timed out", "p99 back", "429", "throttled"];
-
-function highlight(text: string, key: number): ReactNode[] {
-  const pattern = new RegExp(
-    `(WARN|${HOT.map((h) => h.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
-    "g",
-  );
-  const parts = text.split(pattern);
-  return parts.map((p, i) => {
-    const cls =
-      p === "WARN" ? "text-warn" : HOT.includes(p) ? "text-flame" : undefined;
-    return cls ? (
-      <span key={`${key}-${i}`} className={cls}>
-        {p}
-      </span>
-    ) : (
-      <span key={`${key}-${i}`}>{p}</span>
-    );
-  });
-}
-
-function pick(pool: string[]): string {
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
-const RADIUS = 170; // px: disturbance field around the cursor
-const PUSH = 70; // px: max scatter distance
-const OPACITY: Record<Kind, number> = { log: 0.55, chip: 0.6, code: 0.5 };
-
-// Deterministic spread so logs, chips, and snippets interleave evenly.
-function spread(n: number, seed: number): [number, number][] {
-  const pts: [number, number][] = [];
-  let s = seed;
-  const rnd = () => {
-    s = (s * 1103515245 + 12345) & 0x7fffffff;
-    return s / 0x7fffffff;
+// Deterministic RNG so the topology is stable per viewport size.
+function mulberry(seed: number) {
+  let s = seed >>> 0;
+  return () => {
+    s |= 0;
+    s = (s + 0x6d2b79f5) | 0;
+    let z = Math.imul(s ^ (s >>> 15), 1 | s);
+    z = (z + Math.imul(z ^ (z >>> 7), 61 | z)) ^ z;
+    return ((z ^ (z >>> 14)) >>> 0) / 4294967296;
   };
-  for (let i = 0; i < n; i++) {
-    pts.push([
-      3 + ((i * 37 + rnd() * 20) % 88),
-      5 + ((i * 53 + rnd() * 14) % 86),
-    ]);
-  }
-  return pts;
 }
 
-const LOG_ANCHORS = spread(14, 7);
-const CHIP_ANCHORS = spread(12, 41);
-const CODE_ANCHORS = spread(3, 99);
-
-function makeItems(): BgItem[] {
-  const t = performance.now() / 1000;
-  const items: BgItem[] = [];
-  let id = 0;
-  const mk = (
-    kind: Kind,
-    xPct: number,
-    yPct: number,
-    text: string,
-  ): BgItem => ({
-    id: id++,
-    kind,
-    xPct: xPct + (Math.random() * 4 - 2),
-    yPct: yPct + (Math.random() * 4 - 2),
-    phase: Math.random() * Math.PI * 2,
-    driftSpeed: 0.25 + Math.random() * 0.25,
-    text,
-    fadeT: t,
-  });
-  // interleave kinds so nothing clumps
-  const logs = LOG_ANCHORS.map(([x, y]) => mk("log", x, y, pick(CALM)));
-  const chips = CHIP_ANCHORS.map(([x, y], i) =>
-    mk("chip", x, y, CHIPS[i % CHIPS.length]),
-  );
-  const code = CODE_ANCHORS.map(([x, y], i) =>
-    mk("code", x, y, CODE[i % CODE.length]),
-  );
-  const buckets: BgItem[][] = [logs, chips, code];
-  let more = true;
-  while (more) {
-    more = false;
-    for (const b of buckets) {
-      const it = b.shift();
-      if (it) {
-        items.push(it);
-        more = true;
-      }
-    }
-  }
-  // a few extra items parked near the top so the background reads on load,
-  // even on a phone screen showing just the hero
-  const topSpots: [Kind, number, number, string][] = [
-    ["log", 8, 4, pick(CALM)],
-    ["chip", 62, 6, "java"],
-    ["log", 38, 12, pick(CALM)],
-    ["chip", 84, 14, "kafka"],
-    ["code", 14, 18, CODE[1]],
-    ["log", 68, 20, pick(CALM)],
-    ["chip", 44, 8, "spring boot"],
-    ["log", 88, 10, pick(CALM)],
-  ];
-  for (const [kind, x, y, text] of topSpots) items.push(mk(kind, x, y, text));
-  return items;
-}
+const INK = "26,24,21"; // --color-ink
+const AMBER = "150,92,24";
+const RED = "178,58,32";
+const GREEN = "46,125,50";
 
 export default function SystemLogBackground() {
   const reduceMotion = useReducedMotion();
-  const [items, setItems] = useState<BgItem[]>(() =>
-    reduceMotion ? [] : makeItems(),
-  );
-  const itemsRef = useRef<BgItem[]>(items);
-  itemsRef.current = items;
-  const modeRef = useRef<Mode>("calm");
-  const nodeRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const geoRef = useRef<{ dx: number; dy: number }[]>([]);
-  if (geoRef.current.length !== items.length) {
-    geoRef.current = items.map(() => ({ dx: 0, dy: 0 }));
-  }
-  const cursorRef = useRef({ x: -9999, y: -9999, t: -9999 });
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Only the log lines change with incidents; chips and snippets persist.
-  const retext = (mode: Mode, stagger = false) => {
-    const t = performance.now() / 1000;
-    const pool = POOLS[mode];
-    let n = 0;
-    setItems((prev) =>
-      prev.map((it) => {
-        if (it.kind !== "log") return it;
-        const i = n++;
-        return { ...it, text: pick(pool), fadeT: t + (stagger ? i * 0.12 : 0) };
-      }),
-    );
-  };
-
-  // Incident infection: react to playground scenario changes.
   useEffect(() => {
-    if (reduceMotion) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const reduced = reduceMotion === true;
+    let W = window.innerWidth;
+    let H = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    let nodes: TNode[] = [];
+    let adj: number[][] = [];
+    let packets: Packet[] = [];
+    const cursor = { x: -9999, y: -9999, t: -9999 };
+    const modeRef: { mode: Mode } = { mode: "calm" };
+    let pulseStart = -1; // seconds; green sweep on recovery
+    let accent = "#e8491d";
+    let frame = 0;
+
+    const readAccent = () => {
+      const v = getComputedStyle(document.documentElement)
+        .getPropertyValue("--accent")
+        .trim();
+      if (v) accent = v;
+    };
+    readAccent();
+
+    function build() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas!.width = Math.round(W * dpr);
+      canvas!.height = Math.round(H * dpr);
+      canvas!.style.width = `${W}px`;
+      canvas!.style.height = `${H}px`;
+      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const mobile = W < 640;
+      const rnd = mulberry(Math.round(W * 31 + H * 17));
+      const cols = Math.max(4, Math.round(W / (mobile ? 150 : 270)));
+      const rows = Math.max(3, Math.round(H / (mobile ? 170 : 270)));
+      nodes = [];
+      for (let cy = 0; cy < rows; cy++) {
+        for (let cx = 0; cx < cols; cx++) {
+          if (nodes.length >= 30) break;
+          nodes.push({
+            x: ((cx + 0.5 + (rnd() - 0.5) * 0.7) / cols) * W,
+            y: ((cy + 0.5 + (rnd() - 0.5) * 0.7) / rows) * H,
+            r: 1.6 + rnd() * 1.6,
+            phase: rnd() * Math.PI * 2,
+          });
+        }
+      }
+      // connect each node to its 2 nearest neighbors
+      adj = nodes.map(() => []);
+      const seen = new Set<string>();
+      nodes.forEach((n, i) => {
+        const dists = nodes
+          .map((m, j) => ({ j, d: Math.hypot(m.x - n.x, m.y - n.y) }))
+          .filter((o) => o.j !== i)
+          .sort((a, b) => a.d - b.d)
+          .slice(0, 2);
+        for (const { j } of dists) {
+          const key = `${Math.min(i, j)}-${Math.max(i, j)}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            adj[i].push(j);
+            adj[j].push(i);
+          }
+        }
+      });
+      // keep packets on valid edges
+      packets = packets.filter((p) => p.from < nodes.length && p.to < nodes.length);
+      spawnToTarget(true);
+    }
+
+    function randomEdge(rnd: () => number): [number, number] | null {
+      const candidates = nodes
+        .map((_, i) => i)
+        .filter((i) => adj[i].length > 0);
+      if (!candidates.length) return null;
+      const from = candidates[Math.floor(rnd() * candidates.length)];
+      const to = adj[from][Math.floor(rnd() * adj[from].length)];
+      return [from, to];
+    }
+
+    function makePacket(rnd: () => number): Packet | null {
+      const e = randomEdge(rnd);
+      if (!e) return null;
+      return {
+        from: e[0],
+        to: e[1],
+        t: rnd(),
+        speed: 34 + rnd() * 52,
+        accent: rnd() < 0.16,
+        warn: rnd() < 0.45,
+        ox: 0,
+        oy: 0,
+        bright: 0,
+      };
+    }
+
+    function targetCount(): number {
+      const mobile = W < 640;
+      const base = Math.max(6, Math.min(mobile ? 8 : 14, Math.round(nodes.length / 2)));
+      if (modeRef.mode === "flood") return Math.min(30, Math.round(base * 2.2));
+      return base;
+    }
+
+    let spawnClock = 0;
+    function spawnToTarget(instant: boolean) {
+      const target = targetCount();
+      if (packets.length > target) packets = packets.slice(0, target);
+      if (!instant) return;
+      const rnd = mulberry((Date.now() % 2147483647) || 1);
+      while (packets.length < target) {
+        const p = makePacket(rnd);
+        if (!p) break;
+        packets.push(p);
+      }
+    }
+
+    function speedMul(): number {
+      if (modeRef.mode === "slow-db") return 0.35;
+      if (modeRef.mode === "flood") return 1.25;
+      return 1;
+    }
+
+    function drawStatic() {
+      ctx!.clearRect(0, 0, W, H);
+      drawWires();
+      drawNodes(0);
+      const rnd = mulberry(1234);
+      const n = Math.min(8, Math.max(4, Math.round(nodes.length / 3)));
+      for (let i = 0; i < n; i++) {
+        const e = randomEdge(rnd);
+        if (!e) continue;
+        const a = nodes[e[0]];
+        const b = nodes[e[1]];
+        const t = rnd();
+        const x = a.x + (b.x - a.x) * t;
+        const y = a.y + (b.y - a.y) * t;
+        ctx!.beginPath();
+        ctx!.arc(x, y, 2, 0, Math.PI * 2);
+        ctx!.fillStyle = `rgba(${INK},0.3)`;
+        ctx!.fill();
+      }
+    }
+
+    function drawWires() {
+      ctx!.lineWidth = 1;
+      const drawn = new Set<string>();
+      for (let i = 0; i < nodes.length; i++) {
+        for (const j of adj[i]) {
+          const key = `${Math.min(i, j)}-${Math.max(i, j)}`;
+          if (drawn.has(key)) continue;
+          drawn.add(key);
+          const a = nodes[i];
+          const b = nodes[j];
+          ctx!.strokeStyle = `rgba(${INK},0.13)`;
+          ctx!.beginPath();
+          ctx!.moveTo(a.x, a.y);
+          ctx!.lineTo(b.x, b.y);
+          ctx!.stroke();
+        }
+      }
+    }
+
+    function drawNodes(now: number) {
+      for (const n of nodes) {
+        const pulse = 1 + Math.sin(now * 0.9 + n.phase) * 0.18;
+        ctx!.beginPath();
+        ctx!.arc(n.x, n.y, n.r * pulse, 0, Math.PI * 2);
+        ctx!.fillStyle = `rgba(${INK},0.22)`;
+        ctx!.fill();
+      }
+    }
+
+    function drawPulse(now: number) {
+      if (pulseStart < 0) return;
+      const age = now - pulseStart;
+      if (age > 1.8) {
+        pulseStart = -1;
+        return;
+      }
+      const x = (age / 1.8) * (W + 240) - 120;
+      const fade = 1 - age / 1.8;
+      const grad = ctx!.createLinearGradient(x - 120, 0, x + 120, 0);
+      grad.addColorStop(0, `rgba(${GREEN},0)`);
+      grad.addColorStop(0.5, `rgba(${GREEN},${0.1 * fade})`);
+      grad.addColorStop(1, `rgba(${GREEN},0)`);
+      ctx!.fillStyle = grad;
+      ctx!.fillRect(x - 120, 0, 240, H);
+    }
+
+    function drawPackets(now: number, dt: number) {
+      const cur = cursor;
+      const cursorLive = now - cur.t < 2.5;
+      const mul = speedMul();
+      const target = targetCount();
+      // ease packet population toward the target
+      spawnClock += dt;
+      if (packets.length < target && spawnClock > 0.35) {
+        spawnClock = 0;
+        const p = makePacket(mulberry((Date.now() + packets.length * 7919) % 2147483647));
+        if (p) packets.push(p);
+      } else if (packets.length > target + 4) {
+        packets.pop();
+      }
+
+      for (const p of packets) {
+        const a = nodes[p.from];
+        const b = nodes[p.to];
+        if (!a || !b) continue;
+        const len = Math.max(1, Math.hypot(b.x - a.x, b.y - a.y));
+        p.t += ((p.speed * mul * dt) / len);
+        if (p.t >= 1) {
+          // arrive: continue from the arrival node
+          const opts = adj[p.to].filter((j) => j !== p.from);
+          const next = opts.length
+            ? opts[Math.floor(Math.random() * opts.length)]
+            : adj[p.to][0];
+          if (next === undefined) {
+            p.t = 0;
+            continue;
+          }
+          p.from = p.to;
+          p.to = next;
+          p.t = 0;
+        }
+        const x = a.x + (b.x - a.x) * p.t;
+        const y = a.y + (b.y - a.y) * p.t;
+
+        // cursor scatter: push away + brighten, ease back when it leaves
+        let tx = 0;
+        let ty = 0;
+        let tb = 0;
+        if (cursorLive) {
+          const vx = x - cur.x;
+          const vy = y - cur.y;
+          const d = Math.hypot(vx, vy);
+          const R = 150;
+          if (d < R && d > 1) {
+            const f = 1 - d / R;
+            tx = (vx / d) * f * 60;
+            ty = (vy / d) * f * 60;
+            tb = f;
+          }
+        }
+        p.ox += (tx - p.ox) * 0.14;
+        p.oy += (ty - p.oy) * 0.14;
+        p.bright += (tb - p.bright) * 0.14;
+
+        const px = x + p.ox;
+        const py = y + p.oy;
+        let color: string = INK;
+        if (modeRef.mode === "slow-db" && p.warn) color = p.accent ? RED : AMBER;
+        const alpha = Math.min(1, 0.32 + p.bright * 0.45);
+        ctx!.beginPath();
+        ctx!.arc(px, py, 2 + p.bright * 1.6, 0, Math.PI * 2);
+        if (p.accent && modeRef.mode !== "slow-db") {
+          ctx!.fillStyle = accent;
+          ctx!.globalAlpha = alpha;
+        } else {
+          ctx!.fillStyle = `rgba(${color},${alpha.toFixed(3)})`;
+          ctx!.globalAlpha = 1;
+        }
+        ctx!.fill();
+        ctx!.globalAlpha = 1;
+      }
+    }
+
+    let raf = 0;
+    let last = performance.now() / 1000;
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      if (document.hidden) {
+        last = performance.now() / 1000;
+        return;
+      }
+      const now = performance.now() / 1000;
+      const dt = Math.min(0.05, now - last);
+      last = now;
+      frame++;
+      if (frame % 120 === 0) readAccent();
+      ctx!.clearRect(0, 0, W, H);
+      drawWires();
+      drawNodes(now);
+      drawPulse(now);
+      drawPackets(now, dt);
+    };
+
+    const onPoint = (e: PointerEvent) => {
+      cursor.x = e.clientX;
+      cursor.y = e.clientY;
+      cursor.t = performance.now() / 1000;
+    };
+
     const onScenario = (e: Event) => {
       const sc = (e as CustomEvent<{ scenario?: string }>).detail?.scenario;
       if (sc === "slow-db" || sc === "flood") {
-        modeRef.current = sc;
-        retext(sc, true);
+        modeRef.mode = sc;
       } else if (sc === "healthy") {
-        const prev = modeRef.current;
-        if (prev === "slow-db" || prev === "flood") {
-          modeRef.current = "recovering";
-          retext("recovering", true);
+        if (modeRef.mode === "slow-db" || modeRef.mode === "flood") {
+          modeRef.mode = "recovering";
+          pulseStart = performance.now() / 1000;
           window.setTimeout(() => {
-            if (modeRef.current === "recovering") {
-              modeRef.current = "calm";
-              retext("calm", true);
-            }
-          }, 7000);
+            if (modeRef.mode === "recovering") modeRef.mode = "calm";
+          }, 2200);
         }
       }
     };
-    window.addEventListener("jj:scenario", onScenario);
-    return () => window.removeEventListener("jj:scenario", onScenario);
-  }, [reduceMotion]);
 
-  // Aliveness: every so often one log line picks up a fresh entry.
-  useEffect(() => {
-    if (reduceMotion) return;
-    const id = window.setInterval(() => {
-      const t = performance.now() / 1000;
-      const pool = POOLS[modeRef.current];
-      const logIds = itemsRef.current
-        .filter((it) => it.kind === "log")
-        .map((it) => it.id);
-      if (!logIds.length) return;
-      const target = logIds[Math.floor(Math.random() * logIds.length)];
-      setItems((prev) =>
-        prev.map((it) =>
-          it.id === target ? { ...it, text: pick(pool), fadeT: t } : it,
-        ),
-      );
-    }, 14000);
-    return () => window.clearInterval(id);
-  }, [reduceMotion]);
-
-  // Aquarium loop: drift + cursor repulsion, written straight to the DOM
-  // (no React re-renders at 60fps). Touch works via pointer events.
-  useEffect(() => {
-    if (reduceMotion) return;
-    const onPoint = (e: PointerEvent) => {
-      cursorRef.current = {
-        x: e.clientX,
-        y: e.clientY,
-        t: performance.now() / 1000,
-      };
+    let resizeTimer = 0;
+    const onResize = () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(build, 250);
     };
-    window.addEventListener("pointermove", onPoint, { passive: true });
-    window.addEventListener("pointerdown", onPoint, { passive: true });
 
-    let raf = 0;
-    const frame = () => {
-      raf = requestAnimationFrame(frame);
-      if (document.hidden) return;
-      const now = performance.now() / 1000;
-      const W = window.innerWidth;
-      const H = window.innerHeight;
-      const cur = cursorRef.current;
-      const cursorLive = now - cur.t < 2.5;
-      const list = itemsRef.current;
-      for (let i = 0; i < list.length; i++) {
-        const l = list[i];
-        const el = nodeRefs.current[i];
-        if (!el) continue;
-        const ax = (l.xPct / 100) * W;
-        const ay = (l.yPct / 100) * H;
-        const g = geoRef.current[i];
-        if (!g) continue;
-        // gentle drift
-        const driftX = Math.cos(now * l.driftSpeed * 0.7 + l.phase) * 8;
-        const driftY = Math.sin(now * l.driftSpeed + l.phase) * 14;
-        // scatter from the cursor
-        let tx = 0;
-        let ty = 0;
-        let bright = 1;
-        if (cursorLive) {
-          const vx = ax - cur.x;
-          const vy = ay - cur.y;
-          const d = Math.hypot(vx, vy);
-          if (d < RADIUS && d > 1) {
-            const f = 1 - d / RADIUS;
-            const push = f * PUSH;
-            tx = (vx / d) * push;
-            ty = (vy / d) * push;
-            bright = 1 + f * 1.6;
-          }
-        }
-        // ease back to the drift (the settle)
-        g.dx += (tx - g.dx) * 0.14;
-        g.dy += (ty - g.dy) * 0.14;
-        // fade dip right after a text change
-        const sinceFade = now - l.fadeT;
-        const fade = sinceFade < 1 ? 0.2 + 0.8 * sinceFade : 1;
-        el.style.transform = `translate(${(driftX + g.dx).toFixed(1)}px, ${(driftY + g.dy).toFixed(1)}px)`;
-        el.style.opacity = (OPACITY[l.kind] * bright * fade).toFixed(3);
-      }
-    };
-    raf = requestAnimationFrame(frame);
+    build();
+    if (reduced) {
+      drawStatic();
+    } else {
+      window.addEventListener("pointermove", onPoint, { passive: true });
+      window.addEventListener("pointerdown", onPoint, { passive: true });
+      window.addEventListener("jj:scenario", onScenario);
+      raf = requestAnimationFrame(tick);
+    }
+    window.addEventListener("resize", onResize);
+
     return () => {
       cancelAnimationFrame(raf);
+      window.clearTimeout(resizeTimer);
       window.removeEventListener("pointermove", onPoint);
       window.removeEventListener("pointerdown", onPoint);
+      window.removeEventListener("jj:scenario", onScenario);
+      window.removeEventListener("resize", onResize);
     };
   }, [reduceMotion]);
-
-  const renderItem = (it: BgItem, i: number) => {
-    const ref = (el: HTMLDivElement | null) => {
-      nodeRefs.current[i] = el;
-    };
-    if (it.kind === "chip") {
-      return (
-        <div
-          key={it.id}
-          ref={ref}
-          className="absolute select-none"
-          style={{ left: `${it.xPct}%`, top: `${it.yPct}%` }}
-        >
-          <span className="whitespace-nowrap border border-ink/40 px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.14em] text-smoke">
-            {it.text}
-          </span>
-        </div>
-      );
-    }
-    if (it.kind === "code") {
-      return (
-        <div
-          key={it.id}
-          ref={ref}
-          className="absolute select-none"
-          style={{ left: `${it.xPct}%`, top: `${it.yPct}%` }}
-        >
-          <p className="whitespace-nowrap font-mono text-[11px] leading-relaxed text-smoke">
-            {it.text}
-          </p>
-        </div>
-      );
-    }
-    return (
-      <div
-        key={it.id}
-        ref={ref}
-        className="absolute select-none"
-        style={{ left: `${it.xPct}%`, top: `${it.yPct}%` }}
-      >
-        <p className="whitespace-nowrap font-mono text-[12px] leading-relaxed text-smoke">
-          {highlight(it.text, it.id)}
-        </p>
-      </div>
-    );
-  };
-
-  if (reduceMotion) {
-    // Fully static: fixed elements, no animation, no cursor reaction.
-    // Still clearly visible: this is what phones with reduced motion see.
-    return (
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0 select-none overflow-hidden"
-      >
-        {CALM.slice(0, 12).map((t, i) => (
-          <p
-            key={`s-log-${i}`}
-            className="absolute whitespace-nowrap font-mono text-[12px] leading-relaxed text-smoke opacity-60"
-            style={{ left: `${4 + (i % 4) * 24}%`, top: `${3 + i * 7}%` }}
-          >
-            {highlight(t, i)}
-          </p>
-        ))}
-        {CHIPS.slice(0, 8).map((c, i) => (
-          <p
-            key={`s-chip-${i}`}
-            className="absolute"
-            style={{ left: `${8 + (i % 4) * 24}%`, top: `${6 + i * 10.5}%` }}
-          >
-            <span className="whitespace-nowrap border border-ink/40 px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.14em] text-smoke opacity-60">
-              {c}
-            </span>
-          </p>
-        ))}
-        {CODE.slice(0, 3).map((c, i) => (
-          <p
-            key={`s-code-${i}`}
-            className="absolute whitespace-nowrap font-mono text-[11px] text-smoke opacity-60"
-            style={{ left: `${15 + i * 30}%`, top: `${12 + i * 28}%` }}
-          >
-            {c}
-          </p>
-        ))}
-      </div>
-    );
-  }
 
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none fixed inset-0 z-0 select-none overflow-hidden"
     >
-      {items.map((it, i) => renderItem(it, i))}
+      <canvas ref={canvasRef} className="block" />
     </div>
   );
 }
