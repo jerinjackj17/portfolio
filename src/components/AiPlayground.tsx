@@ -131,12 +131,12 @@ export default function AiPlayground() {
           setStage("generate");
           const best = top[0] ? chunks.find((c) => c.id === top[0].id) : null;
           if (!best) {
-            setAnswer(`Nothing in the docs matches that. Try one of the suggested questions.`);
+            setAnswer(`I don't have anything on that in these docs. Try one of the suggested questions.`);
             setAnswerDone(true);
             setStage("done");
             return;
           }
-          let text = `The docs say: "${best.text}" [${best.id}].`;
+          let text = `"${best.text}" [${best.id}].`;
           const second = top[1] && top[1].s >= 0.3 ? chunks.find((c) => c.id === top[1].id) : null;
           if (second) text += ` Also: "${second.text}" [${second.id}].`;
           if (reduceMotion) {

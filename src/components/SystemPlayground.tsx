@@ -505,7 +505,7 @@ function CtlButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`border px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
+      className={`border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
         active
           ? "border-ink bg-ink text-paper"
           : "border-ink/70 text-ink hover:bg-ink hover:text-paper disabled:hover:bg-transparent disabled:hover:text-ink"
@@ -832,19 +832,19 @@ export default function SystemPlayground() {
 
   return (
     <figure className="scroll-mt-24">
-      <p className="mb-1 font-mono text-xs text-smoke">
-        the system, live. compose a request and send it.
-      </p>
-      <p className="mb-4 font-mono text-[11px] text-faint">
-        a toy model. it runs on your clicks, not a backend.
+      <p className="mb-3 font-mono text-xs text-smoke">
+        the system, live.{" "}
+        <span className="text-faint">
+          a toy model. it runs on your clicks, not a backend.
+        </span>
       </p>
 
-      {/* composer */}
-      <div className="border border-ink/70 p-4 md:p-5">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke">
-          compose a request
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
+      {/* composer: one compact control bar */}
+      <div className="border border-ink/70 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke">
+            compose
+          </span>
           {(Object.keys(METHODS) as Method[]).map((m) => (
             <CtlButton
               key={m}
@@ -857,8 +857,9 @@ export default function SystemPlayground() {
               {m}
             </CtlButton>
           ))}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2">
+          <span aria-hidden="true" className="font-mono text-[11px] text-faint">
+            /
+          </span>
           {METHODS[method].map((e) => (
             <CtlButton
               key={e}
@@ -869,12 +870,12 @@ export default function SystemPlayground() {
             </CtlButton>
           ))}
         </div>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-rule pt-2">
           <button
             type="button"
             onClick={send}
             disabled={!!sim.flight}
-            className="border border-ink bg-ink px-6 py-2.5 font-mono text-xs font-medium uppercase tracking-[0.18em] text-paper transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+            className="border border-ink bg-ink px-6 py-1.5 font-mono text-xs font-medium uppercase tracking-[0.18em] text-paper transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {sim.flight ? "on its way…" : "send →"}
           </button>
@@ -890,36 +891,28 @@ export default function SystemPlayground() {
               request on the road…
             </span>
           )}
-        </div>
-
-        <div className="mt-5 border-t border-rule pt-4">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke">
+          <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke">
             trouble
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <CtlButton
-              disabled={sim.scenario !== "healthy"}
-              onClick={() => setScenario("slow-db")}
-            >
-              slow the database
-            </CtlButton>
-            <CtlButton
-              disabled={sim.scenario !== "healthy"}
-              onClick={() => setScenario("flood")}
-            >
-              flood the traffic
-            </CtlButton>
-            <CtlButton
-              disabled={sim.scenario === "healthy"}
-              onClick={() => setScenario("healthy")}
-            >
-              fix everything
-            </CtlButton>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-rule pt-3 font-mono text-xs">
-          <p>
+          </span>
+          <CtlButton
+            disabled={sim.scenario !== "healthy"}
+            onClick={() => setScenario("slow-db")}
+          >
+            slow the database
+          </CtlButton>
+          <CtlButton
+            disabled={sim.scenario !== "healthy"}
+            onClick={() => setScenario("flood")}
+          >
+            flood the traffic
+          </CtlButton>
+          <CtlButton
+            disabled={sim.scenario === "healthy"}
+            onClick={() => setScenario("healthy")}
+          >
+            fix everything
+          </CtlButton>
+          <span className="ml-auto font-mono text-xs">
             <span
               aria-hidden="true"
               className={`mr-2 inline-block h-2 w-2 ${statusDot}`}
@@ -932,20 +925,20 @@ export default function SystemPlayground() {
             >
               {flash ?? statusText()}
             </span>
-          </p>
-          <p className="tnum text-faint">
+          </span>
+          <span className="tnum font-mono text-xs text-faint">
             incidents fixed: {sim.incidentsFixed}
             {" · "}best:{" "}
             {sim.bestMs != null ? `${sim.bestMs.toFixed(0)}s` : "-"}
-          </p>
+          </span>
         </div>
       </div>
 
       {/* diagram */}
-      <div className="mt-6 overflow-x-auto pb-1">
+      <div className="mt-3 overflow-x-auto pb-1">
         <div className="relative min-w-[900px]">
           <svg
-            viewBox="0 0 1200 700"
+            viewBox="0 0 1200 620"
             className="block w-full"
             role="img"
             aria-label="Interactive system diagram. Compose a request above and watch it travel."
@@ -1024,7 +1017,7 @@ export default function SystemPlayground() {
       </p>
 
       {/* response card */}
-      <div ref={responseRef} className="mt-5 min-h-[132px] scroll-mt-24 border-y border-ink/70 py-5">
+      <div ref={responseRef} className="mt-3 min-h-[104px] scroll-mt-24 border-y border-ink/70 py-3">
         {sim.response ? (
           <motion.div
             key={sim.response.key}

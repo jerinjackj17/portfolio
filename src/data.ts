@@ -312,7 +312,7 @@ export const projects: Project[] = [
 export const skillGroups: { name: string; items: string; usedAt: string }[] = [
   {
     name: "Languages",
-    items: "Java 8/11/17, SQL, TypeScript",
+    items: "Java 8/11/17, Python, C, SQL, TypeScript",
     usedAt: "the daily drivers, in every role since 2020",
   },
   {
@@ -362,7 +362,7 @@ export const skillGroups: { name: string; items: string; usedAt: string }[] = [
   },
   {
     name: "Frontend",
-    items: "Angular 8, HTML5, CSS3, TypeScript",
+    items: "React, JavaScript, TypeScript, Tailwind CSS, HTML/CSS",
     usedAt: "Angular 8 front end on the vehicle reservation platform",
   },
   {
@@ -538,17 +538,17 @@ export const ragDocs: RagDoc[] = [
   {
     id: "payments",
     title: "the payment speedup",
-    text: "At Gulf International Bank, working through TCS, Jerin tuned the payment APIs that slowed down at peak time. Oracle and PL/SQL query tuning, better indexes, tighter transactions, and Redis caching in front of the hottest reads cut peak-time response times by nearly 50%.",
+    text: "At Gulf International Bank, working through TCS, I tuned the payment APIs that slowed down at peak time. Oracle and PL/SQL query tuning, better indexes, tighter transactions, and Redis caching in front of the hottest reads cut peak-time response times by nearly 50%.",
   },
   {
     id: "reporting",
     title: "the ten-second report",
-    text: "At the Chicago Education Advocacy Cooperative, a recurring reporting query took several seconds against the PostgreSQL database. Jerin rewrote the inefficient join, added targeted indexes, and normalized the schema. The same report now finishes in under a second.",
+    text: "At the Chicago Education Advocacy Cooperative, a recurring reporting query took several seconds against the PostgreSQL database. I rewrote the inefficient join, added targeted indexes, and normalized the schema. The same report now finishes in under a second.",
   },
   {
     id: "kafka",
     title: "going async",
-    text: "At AVPS Technologies, Jerin replaced synchronous service calls with Kafka event flows for audit events and workflow notifications. Less coupling between services, better fault isolation. He mentored two junior developers and kept zero production defects over the past year.",
+    text: "At AVPS Technologies, I replaced synchronous service calls with Kafka event flows for audit events and workflow notifications. Less coupling between services, better fault isolation. I mentored two junior developers and kept zero production defects over the past year.",
   },
 ];
 

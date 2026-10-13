@@ -32,8 +32,8 @@ const FAST_POOL = [
   { label: "GET /version", ms: 8 },
 ];
 
-const PANEL_H = 400;
-const FALL_SPEED = 88; // px per second: ~4.5s to cross the panel
+const PANEL_H = 280;
+const FALL_SPEED = 88; // px per second: ~3.2s to cross the panel
 const BEST_KEY = "jj-sqg-best";
 
 function pick(pool: { label: string; ms: number }[]) {
@@ -193,7 +193,7 @@ export default function SlowQueryGame() {
   };
 
   return (
-    <div className="border border-ink/70 bg-paper p-4">
+    <div className="border border-ink/70 bg-paper p-3">
       <div className="flex items-baseline justify-between gap-3">
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke">
           catch the slow query
@@ -202,10 +202,9 @@ export default function SlowQueryGame() {
           score {score} · best {best}
         </p>
       </div>
-      <p className="mt-2 text-[13px] leading-relaxed text-ink/80">
-        Queries are falling. Click the slow ones (over 500ms) to optimize them.
-        Let 3 slow ones slip past and the deploy fails. Clicking a fast one
-        costs 50 points.
+      <p className="mt-2 text-[12px] leading-relaxed text-ink/80">
+        Click the slow ones (over 500ms) before they slip past. 3 misses and
+        the deploy fails. A fast one costs 50 points.
       </p>
 
       <div
