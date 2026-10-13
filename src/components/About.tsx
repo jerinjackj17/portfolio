@@ -44,7 +44,7 @@ export default function About() {
   return (
     <section
       id="about"
-      className="mx-auto max-w-5xl scroll-mt-24 px-5 pt-20 md:px-8 md:pt-28"
+      className="mx-auto max-w-5xl scroll-mt-24 px-5 pt-24 md:px-8 md:pt-36"
     >
       <SectionHeader title="About" />
       <div className="mt-8 grid gap-10 md:grid-cols-[1fr_1fr] md:gap-14">
