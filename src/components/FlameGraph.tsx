@@ -121,11 +121,11 @@ export default function FlameGraph() {
           </div>
 
           {/* root bar */}
-          <div className="relative h-7 w-full bg-ink">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[11px] uppercase tracking-[0.18em] text-paper">
+          <div className="relative h-7 w-full border border-ink/70">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink">
               career · apr 2020 → present
             </span>
-            <span className="absolute right-3 top-1/2 hidden -translate-y-1/2 font-mono text-[11px] text-paper/60 sm:block">
+            <span className="absolute right-3 top-1/2 hidden -translate-y-1/2 font-mono text-[11px] text-smoke sm:block">
               4+ yrs
             </span>
           </div>
@@ -164,12 +164,16 @@ export default function FlameGraph() {
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.9, delay: 0.1 + i * 0.09, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <span className="tnum block truncate px-2 pt-2 font-mono text-[10px] uppercase tracking-[0.14em]">
-                    {f.label}
-                  </span>
-                  <span className="tnum block truncate px-2 font-mono text-[10px] opacity-70">
-                    {f.dates}
-                  </span>
+                  {w > 8 && (
+                    <>
+                      <span className="tnum block truncate px-2 pt-2 font-mono text-[10px] uppercase tracking-[0.14em]">
+                        {f.label}
+                      </span>
+                      <span className="tnum block truncate px-2 font-mono text-[10px] opacity-70">
+                        {f.dates}
+                      </span>
+                    </>
+                  )}
                 </motion.div>
               );
             })}
@@ -212,9 +216,11 @@ export default function FlameGraph() {
                     viewport={{ once: true, margin: "-60px" }}
                     transition={{ duration: 0.9, delay: 0.45 + i * 0.09, ease: [0.22, 1, 0.36, 1] }}
                     >
-                    <span className="tnum block truncate px-2 pt-2.5 font-mono text-[10px] uppercase tracking-[0.12em]">
-                      {c.label}
-                    </span>
+                    {w > 8 && (
+                      <span className="tnum block truncate px-2 pt-2.5 font-mono text-[10px] uppercase tracking-[0.12em]">
+                        {c.label}
+                      </span>
+                    )}
                   </motion.div>
                 );
               }),
