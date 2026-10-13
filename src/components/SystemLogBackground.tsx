@@ -530,7 +530,7 @@ export default function SystemLogBackground() {
       }
     }
 
-    function drawNodes(now: number) {
+    function drawNodes() {
       const sick = modeRef.mode === "slow-db";
       for (const n of nodes) {
         const f = edgeFade(n.y);
@@ -653,7 +653,7 @@ export default function SystemLogBackground() {
     function drawStatic() {
       ctx!.setTransform(dpr, 0, 0, dpr, 0, -camY * dpr);
       drawWires();
-      drawNodes(0);
+      drawNodes();
       const rnd = mulberry(1234);
       const n = Math.min(8, Math.max(4, Math.round(nodes.length / 3)));
       for (let i = 0; i < n; i++) {
@@ -692,7 +692,7 @@ export default function SystemLogBackground() {
       ctx!.setTransform(dpr, 0, 0, dpr, 0, -camY * dpr);
       ctx!.clearRect(0, camY, W, H);
       drawWires();
-      drawNodes(now);
+      drawNodes();
       drawPulse();
       drawPackets(now, dt);
     };
