@@ -362,7 +362,7 @@ function assembleTrip(
   const driveMs = Math.max(900, targetMs - nodePauseTotal - processMs);
   // the per-leg easing averages ~0.76, so compensate to hit the target;
   // pace slows the whole drive when the system is sick
-  const speed = total / ((driveMs / 1000) * 0.76) / pace;
+  const speed = (total / ((driveMs / 1000) * 0.76)) * pace;
 
   return {
     id,

@@ -341,7 +341,12 @@ export default function SystemLogBackground() {
     };
     if (it.kind === "chip") {
       return (
-        <div key={it.id} ref={ref} className="absolute select-none">
+        <div
+          key={it.id}
+          ref={ref}
+          className="absolute select-none"
+          style={{ left: `${it.xPct}%`, top: `${it.yPct}%` }}
+        >
           <span className="whitespace-nowrap border border-ink/40 px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.14em] text-smoke">
             {it.text}
           </span>
@@ -350,7 +355,12 @@ export default function SystemLogBackground() {
     }
     if (it.kind === "code") {
       return (
-        <div key={it.id} ref={ref} className="absolute select-none">
+        <div
+          key={it.id}
+          ref={ref}
+          className="absolute select-none"
+          style={{ left: `${it.xPct}%`, top: `${it.yPct}%` }}
+        >
           <p className="whitespace-nowrap font-mono text-[11px] leading-relaxed text-smoke">
             {it.text}
           </p>
@@ -358,7 +368,12 @@ export default function SystemLogBackground() {
       );
     }
     return (
-      <div key={it.id} ref={ref} className="absolute select-none">
+      <div
+        key={it.id}
+        ref={ref}
+        className="absolute select-none"
+        style={{ left: `${it.xPct}%`, top: `${it.yPct}%` }}
+      >
         <p className="whitespace-nowrap font-mono text-[12px] leading-relaxed text-smoke">
           {highlight(it.text, it.id)}
         </p>
