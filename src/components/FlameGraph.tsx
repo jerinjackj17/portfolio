@@ -102,7 +102,7 @@ export default function FlameGraph() {
   return (
     <figure>
       <figcaption className="mb-3 font-mono text-xs text-smoke">
-        <span className="text-flame-deep">fig. 01</span>
+        <span className="text-flame-deep">fig. 02</span>
         <span className="mx-2 text-rule">/</span>
         career flame graph. width = time. hover a frame, click to inspect.
       </figcaption>

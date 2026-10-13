@@ -385,6 +385,140 @@ export const education = [
   },
 ];
 
+/* ------------------------------------------------------------------ */
+/* System playground: the architecture, live.                         */
+/* All stories trace to the master brief §1. Metrics are illustrative */
+/* sample traffic for the simulation, labeled as such in the caption. */
+/* ------------------------------------------------------------------ */
+
+export interface SystemNode {
+  id: string;
+  label: string;
+  /** one line on what it does */
+  role: string;
+  /** headline story */
+  story: string;
+  /** 2-3 bullets, facts from brief §1 only */
+  details: string[];
+  /** illustrative base traffic for the simulation */
+  baseRpm: number;
+  baseP50: number;
+}
+
+export const systemNodes: SystemNode[] = [
+  {
+    id: "client",
+    label: "client",
+    role: "you, clicking around.",
+    story: "Every request below starts here. Go on, break something.",
+    details: [
+      "Cars are API requests. Motorbikes are async events.",
+      "The traffic slider sets the load. The chaos buttons do the rest.",
+    ],
+    baseRpm: 8200,
+    baseP50: 0,
+  },
+  {
+    id: "api-gateway",
+    label: "api-gateway",
+    role: "the front door. routes every request.",
+    story: "12+ production REST endpoints shipped as Spring Boot microservices.",
+    details: [
+      "Controller, service, repository architecture with reusable DTOs.",
+      "Zero production defects over the past year.",
+      "Containerized with Docker, deployed to AWS ECS.",
+    ],
+    baseRpm: 8200,
+    baseP50: 12,
+  },
+  {
+    id: "auth-svc",
+    label: "auth-svc",
+    role: "who are you? proves it.",
+    story: "OAuth2 and JWT-based authentication for service-to-service calls.",
+    details: [
+      "Secured service-to-service communication for a regulated banking client.",
+      "Spring Security with request validation and error code handling.",
+    ],
+    baseRpm: 1100,
+    baseP50: 24,
+  },
+  {
+    id: "payments-svc",
+    label: "payments-svc",
+    role: "moves money. carefully.",
+    story: "Peak-time payment APIs, nearly 50% faster.",
+    details: [
+      "Oracle and PL/SQL query tuning, index optimization, transaction management.",
+      "Redis caching in front of the hottest read paths.",
+      "Balance transfers, international payments, reconciliation.",
+    ],
+    baseRpm: 2400,
+    baseP50: 96,
+  },
+  {
+    id: "reports-svc",
+    label: "reports-svc",
+    role: "answers hard questions. slowly, then fast.",
+    story: "A recurring reporting query went from seconds to under a second.",
+    details: [
+      "Rewrote an inefficient join and added targeted indexes.",
+      "Normalized PostgreSQL schemas designed for analytics workloads.",
+    ],
+    baseRpm: 310,
+    baseP50: 180,
+  },
+  {
+    id: "kafka",
+    label: "kafka",
+    role: "the nervous system. async everything.",
+    story: "Async audit events and workflow notifications.",
+    details: [
+      "Replaced synchronous service calls with Kafka event flows.",
+      "Shipped at two employers: AVPS Technologies and the Chicago Education Advocacy Cooperative.",
+      "Less coupling between services, better fault isolation.",
+    ],
+    baseRpm: 12000,
+    baseP50: 6,
+  },
+  {
+    id: "postgres",
+    label: "postgres",
+    role: "remembers everything.",
+    story: "Normalized schemas, tuned until they behave.",
+    details: [
+      "Query tuning and indexing across Oracle and PostgreSQL.",
+      "Schemas designed for analytics and reporting workloads.",
+    ],
+    baseRpm: 3100,
+    baseP50: 8,
+  },
+  {
+    id: "redis",
+    label: "redis",
+    role: "remembers fast things faster.",
+    story: "Redis caching in front of the hottest read paths.",
+    details: [
+      "Helped cut peak-time payment API latency nearly in half.",
+      "Caching strategies for high-read workloads.",
+    ],
+    baseRpm: 9400,
+    baseP50: 2,
+  },
+  {
+    id: "mongo",
+    label: "mongo",
+    role: "files the documents.",
+    story: "Document pipeline results, stored by type.",
+    details: [
+      "AI document processing: results stored in MongoDB and Oracle by document type.",
+      "Kafka-based async job queuing behind it, with status tracking APIs.",
+    ],
+    baseRpm: 640,
+    baseP50: 14,
+  },
+];
+
 export const about = {
   paragraphs: [
     "I'm Jerin Jack, a software engineer with 4+ years building the parts of software users never see but always feel: APIs, microservices, data pipelines. Most of my work has been Java and Spring Boot, with a lot of time spent making databases behave. Oracle and PostgreSQL tuning, Redis caching, Kafka event flows. I use AI coding agents daily and they make me faster, not lazier.",

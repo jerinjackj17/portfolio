@@ -1,5 +1,6 @@
 import Nav from "./components/Nav";
 import Hero from "./components/Hero";
+import FlameGraph from "./components/FlameGraph";
 import About from "./components/About";
 import Experience from "./components/Experience";
 import Projects from "./components/Projects";
@@ -14,6 +15,12 @@ export default function App() {
       <Nav />
       <main>
         <Hero />
+        <section
+          aria-label="career flame graph"
+          className="mx-auto max-w-5xl px-5 pt-16 md:px-8 md:pt-24"
+        >
+          <FlameGraph />
+        </section>
         <About />
         <Experience />
         <Projects />

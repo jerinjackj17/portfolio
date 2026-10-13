@@ -1,5 +1,5 @@
 import { hero } from "../data";
-import FlameGraph from "./FlameGraph";
+import SystemPlayground from "./SystemPlayground";
 
 export default function Hero() {
   return (
@@ -19,7 +19,7 @@ export default function Hero() {
       </p>
 
       <div className="mt-12 md:mt-16">
-        <FlameGraph />
+        <SystemPlayground />
       </div>
     </section>
   );
