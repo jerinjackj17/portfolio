@@ -321,6 +321,42 @@ function drawGlyph(
       ctx.lineTo(x + s * 0.5, y);
       break;
     }
+    case "pipeline": {
+      // deployment pipeline: three chevrons
+      for (let i = -1; i <= 1; i++) {
+        const cxp = x + i * s * 0.36;
+        ctx.moveTo(cxp - s * 0.14, y - s * 0.4);
+        ctx.lineTo(cxp + s * 0.14, y);
+        ctx.lineTo(cxp - s * 0.14, y + s * 0.4);
+      }
+      break;
+    }
+    case "shield": {
+      // shield outline
+      ctx.moveTo(x, y - s * 0.55);
+      ctx.lineTo(x + s * 0.42, y - s * 0.32);
+      ctx.lineTo(x + s * 0.42, y + s * 0.08);
+      ctx.quadraticCurveTo(x + s * 0.42, y + s * 0.4, x, y + s * 0.55);
+      ctx.quadraticCurveTo(x - s * 0.42, y + s * 0.4, x - s * 0.42, y + s * 0.08);
+      ctx.lineTo(x - s * 0.42, y - s * 0.32);
+      ctx.closePath();
+      break;
+    }
+    case "globe": {
+      // edge globe: circle + meridians
+      ctx.arc(x, y, s * 0.5, 0, Math.PI * 2);
+      ctx.moveTo(x - s * 0.5, y);
+      ctx.lineTo(x + s * 0.5, y);
+      ctx.ellipse(x, y, s * 0.24, s * 0.5, 0, 0, Math.PI * 2);
+      break;
+    }
+    case "lens": {
+      // search lens over the data
+      ctx.arc(x - s * 0.08, y - s * 0.08, s * 0.36, 0, Math.PI * 2);
+      ctx.moveTo(x + s * 0.18, y + s * 0.18);
+      ctx.lineTo(x + s * 0.52, y + s * 0.52);
+      break;
+    }
     default: {
       ctx.arc(x, y, s * 0.4, 0, Math.PI * 2);
     }
@@ -432,7 +468,7 @@ export default function SystemLogBackground() {
       });
       // every node gets an icon: hubs use the stack glyph, the rest get a
       // decorative geometric mark so icons run through the whole network
-      const GENERIC = ["hex", "cube", "gear", "waves", "spiral", "target", "lock", "chip", "antenna", "gauge", "layers", "diamond", "tri", "spark", "grid"];
+      const GENERIC = ["hex", "cube", "gear", "waves", "spiral", "target", "lock", "chip", "antenna", "gauge", "layers", "diamond", "tri", "spark", "grid", "pipeline", "shield", "globe", "lens"];
       nodes.forEach((n, i) => {
         if (!n.hub) n.hub = GENERIC[i % GENERIC.length];
       });
