@@ -97,7 +97,7 @@ export default function FlameGraph() {
   };
 
   const frameClass = (heat: number, extra = "") =>
-    `absolute top-0 h-full overflow-hidden ${HEAT_BG[heat]} ${HEAT_TEXT[heat]} ${extra}`;
+    `absolute top-0 h-full overflow-hidden ${HEAT_BG[heat]} ${HEAT_TEXT[heat]} ${heat === 3 ? "fg-frame-hot" : "fg-frame"} ${extra}`;
 
   return (
     <figure>
@@ -186,7 +186,7 @@ export default function FlameGraph() {
           </div>
 
           {/* row 2: hot frames */}
-          <div className="relative mt-[3px] h-16 w-full">
+          <div className="relative mt-[3px] h-16 w-full border-t border-ink/25 pt-[3px]">
             {careerFrames.map((f, i) =>
               f.children.map((c) => {
                 const parentL = leftPct(f.start);
@@ -258,14 +258,23 @@ export default function FlameGraph() {
 
       {/* legend */}
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] text-smoke">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 bg-cool-1 ring-1 ring-rule" />
-          <span className="inline-block h-3 w-3 bg-cool-2 ring-1 ring-rule" />
-          <span className="inline-block h-3 w-3 bg-warm-1 ring-1 ring-rule" />
-          <span className="inline-block h-3 w-3 bg-hot" />
-          cooler → hotter
+        <span className="uppercase tracking-[0.14em] text-faint">heat</span>
+        {(
+          [
+            ["cool", "bg-cool-1"],
+            ["warm", "bg-cool-2"],
+            ["hot", "bg-warm-1"],
+            ["hottest", "bg-hot"],
+          ] as [string, string][]
+        ).map(([label, cls]) => (
+          <span key={label} className="flex items-center gap-1.5">
+            <span className={`inline-block h-3 w-3 ${cls} ring-1 ring-ink/25`} />
+            {label}
+          </span>
+        ))}
+        <span className="text-faint">
+          child frames: the stories worth zooming into, sized for reading
         </span>
-        <span>child frames: the stories worth zooming into, sized for reading</span>
       </div>
 
       {/* detail strip */}

@@ -1,11 +1,17 @@
-import { useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useRef, useState } from "react";
+import { motion, useReducedMotion, useScroll, useSpring } from "framer-motion";
 import { experience } from "../data";
 import SectionHeader from "./SectionHeader";
 
 export default function Experience() {
   const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState<string | null>(experience[0].company);
+  const listRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: listRef,
+    offset: ["start 0.85", "end 0.55"],
+  });
+  const spineDraw = useSpring(scrollYProgress, { stiffness: 120, damping: 24 });
 
   return (
     <section
@@ -17,11 +23,28 @@ export default function Experience() {
         newest first. click a role to open it.
       </p>
 
-      <div className="mt-8 border-l border-ink/40">
-        {experience.map((e) => {
+      <div ref={listRef} className="relative mt-8 border-l border-ink/40">
+        {/* spine draws itself in on scroll */}
+        <motion.span
+          aria-hidden="true"
+          className="absolute bottom-0 left-0 top-0 w-[2px] origin-top bg-flame"
+          style={{ scaleY: reduceMotion ? 1 : spineDraw }}
+        />
+        {experience.map((e, idx) => {
           const isOpen = open === e.company;
           return (
-            <div key={e.company} className="relative pb-2 pl-8 md:pl-10">
+            <motion.div
+              key={e.company}
+              initial={reduceMotion ? false : { opacity: 0, x: -12 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{
+                duration: 0.45,
+                delay: idx * 0.07,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="relative pb-2 pl-8 md:pl-10"
+            >
               <span
                 aria-hidden="true"
                 className={`absolute -left-[7px] top-2 h-3.5 w-3.5 rounded-full border-2 ${
@@ -72,7 +95,7 @@ export default function Experience() {
                   ))}
                 </motion.ul>
               )}
-            </div>
+            </motion.div>
           );
         })}
       </div>

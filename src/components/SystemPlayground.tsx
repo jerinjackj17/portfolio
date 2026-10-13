@@ -13,14 +13,14 @@ interface NodeGeom {
 }
 
 const GEOM: NodeGeom[] = [
-  { id: "client", x: 40, y: 310, w: 170, h: 84 },
-  { id: "api-gateway", x: 300, y: 310, w: 180, h: 84 },
-  { id: "auth-svc", x: 580, y: 96, w: 180, h: 84 },
-  { id: "payments-svc", x: 580, y: 308, w: 180, h: 84 },
-  { id: "reports-svc", x: 580, y: 520, w: 180, h: 84 },
-  { id: "kafka", x: 900, y: 96, w: 180, h: 84 },
-  { id: "postgres", x: 900, y: 308, w: 180, h: 84 },
-  { id: "redis", x: 900, y: 520, w: 180, h: 84 },
+  { id: "client", x: 60, y: 308, w: 180, h: 84 },
+  { id: "api-gateway", x: 360, y: 308, w: 180, h: 84 },
+  { id: "auth-svc", x: 660, y: 96, w: 180, h: 84 },
+  { id: "payments-svc", x: 660, y: 308, w: 180, h: 84 },
+  { id: "reports-svc", x: 660, y: 520, w: 180, h: 84 },
+  { id: "kafka", x: 960, y: 96, w: 180, h: 84 },
+  { id: "postgres", x: 960, y: 308, w: 180, h: 84 },
+  { id: "redis", x: 960, y: 520, w: 180, h: 84 },
 ];
 
 interface Road {
@@ -31,26 +31,26 @@ interface Road {
 }
 
 const ROADS: Road[] = [
-  { id: "r-client-gw", d: "M 210 352 H 300", from: "client", to: "api-gateway" },
-  { id: "r-gw-auth", d: "M 480 352 H 530 V 138 H 580", from: "api-gateway", to: "auth-svc" },
-  { id: "r-gw-pay", d: "M 480 352 H 580", from: "api-gateway", to: "payments-svc" },
-  { id: "r-gw-rep", d: "M 480 352 H 530 V 562 H 580", from: "api-gateway", to: "reports-svc" },
-  { id: "r-pay-kafka", d: "M 760 350 H 855 V 138 H 900", from: "payments-svc", to: "kafka" },
-  { id: "r-pay-pg", d: "M 760 350 H 900", from: "payments-svc", to: "postgres" },
-  { id: "r-pay-redis", d: "M 760 350 H 855 V 562 H 900", from: "payments-svc", to: "redis" },
-  { id: "r-rep-pg", d: "M 760 562 H 855 V 350 H 900", from: "reports-svc", to: "postgres" },
-  { id: "r-auth-redis", d: "M 760 138 H 855 V 562 H 900", from: "auth-svc", to: "redis" },
+  { id: "r-client-gw", d: "M 240 350 H 360", from: "client", to: "api-gateway" },
+  { id: "r-gw-auth", d: "M 540 350 H 600 V 138 H 660", from: "api-gateway", to: "auth-svc" },
+  { id: "r-gw-pay", d: "M 540 350 H 660", from: "api-gateway", to: "payments-svc" },
+  { id: "r-gw-rep", d: "M 540 350 H 600 V 562 H 660", from: "api-gateway", to: "reports-svc" },
+  { id: "r-pay-kafka", d: "M 840 350 H 900 V 138 H 960", from: "payments-svc", to: "kafka" },
+  { id: "r-pay-pg", d: "M 840 350 H 960", from: "payments-svc", to: "postgres" },
+  { id: "r-pay-redis", d: "M 840 350 H 900 V 562 H 960", from: "payments-svc", to: "redis" },
+  { id: "r-rep-pg", d: "M 840 562 H 900 V 350 H 960", from: "reports-svc", to: "postgres" },
+  { id: "r-auth-redis", d: "M 840 138 H 900 V 562 H 960", from: "auth-svc", to: "redis" },
 ];
 
 const ZONES: [string, number][] = [
-  ["client", 125],
-  ["gateway", 390],
-  ["services", 670],
-  ["data", 990],
+  ["client", 150],
+  ["gateway", 450],
+  ["services", 750],
+  ["data", 1050],
 ];
 
 const ISO_D = 7;
-const HEAT_HEX = ["#FBF8F1", "#F6EFE2", "#F2C29B", "#E8491D"];
+const HEAT_HEX = ["#FBF8F1", "#F6EFE2", "#F2C29B", "var(--accent)"];
 
 /* ================= request composer ================= */
 
@@ -74,6 +74,8 @@ const METHOD_VEHICLE: Record<Method, VKind> = {
 interface RouteDef {
   service: string;
   outbound: string[];
+  /** exact path the vehicle drives, shown on the response card */
+  trace: string;
   status: string;
   body: string;
   note: string;
@@ -83,6 +85,7 @@ const ROUTES: Record<string, RouteDef> = {
   "GET /payments/balance": {
     service: "payments-svc",
     outbound: ["r-client-gw", "r-gw-pay", "r-pay-redis"],
+    trace: "client → gateway → payments-svc → redis",
     status: "200 OK",
     body: '{ "balance": 1250.00 }',
     note: "balance read from the cache. fast.",
@@ -90,6 +93,7 @@ const ROUTES: Record<string, RouteDef> = {
   "GET /reports/monthly": {
     service: "reports-svc",
     outbound: ["r-client-gw", "r-gw-rep", "r-rep-pg"],
+    trace: "client → gateway → reports-svc → postgres",
     status: "200 OK",
     body: '{ "month": "2026-09", "total": 88412 }',
     note: "monthly rollup from postgres.",
@@ -97,6 +101,7 @@ const ROUTES: Record<string, RouteDef> = {
   "GET /auth/me": {
     service: "auth-svc",
     outbound: ["r-client-gw", "r-gw-auth", "r-auth-redis"],
+    trace: "client → gateway → auth-svc → redis",
     status: "200 OK",
     body: '{ "sub": "jerin.jack", "scope": "read" }',
     note: "session looked up.",
@@ -104,6 +109,7 @@ const ROUTES: Record<string, RouteDef> = {
   "POST /payments/charge": {
     service: "payments-svc",
     outbound: ["r-client-gw", "r-gw-pay", "r-pay-kafka"],
+    trace: "client → gateway → payments-svc → kafka",
     status: "201 Created",
     body: '{ "chargeId": "ch_8H2K", "status": "captured" }',
     note: "charge accepted. the event rides kafka from here.",
@@ -111,6 +117,7 @@ const ROUTES: Record<string, RouteDef> = {
   "POST /auth/token": {
     service: "auth-svc",
     outbound: ["r-client-gw", "r-gw-auth", "r-auth-redis"],
+    trace: "client → gateway → auth-svc → redis",
     status: "201 Created",
     body: '{ "token": "eyJhbGci…", "expiresIn": 3600 }',
     note: "token minted and stored.",
@@ -118,6 +125,7 @@ const ROUTES: Record<string, RouteDef> = {
   "PUT /payments/{id}": {
     service: "payments-svc",
     outbound: ["r-client-gw", "r-gw-pay", "r-pay-pg"],
+    trace: "client → gateway → payments-svc → postgres",
     status: "200 OK",
     body: '{ "id": "pay_42", "status": "updated" }',
     note: "payment record updated.",
@@ -125,6 +133,7 @@ const ROUTES: Record<string, RouteDef> = {
   "PUT /reports/{id}": {
     service: "reports-svc",
     outbound: ["r-client-gw", "r-gw-rep", "r-rep-pg"],
+    trace: "client → gateway → reports-svc → postgres",
     status: "200 OK",
     body: '{ "id": "rpt_7", "status": "updated" }',
     note: "report updated.",
@@ -132,6 +141,7 @@ const ROUTES: Record<string, RouteDef> = {
   "DELETE /payments/{id}": {
     service: "payments-svc",
     outbound: ["r-client-gw", "r-gw-pay", "r-pay-pg"],
+    trace: "client → gateway → payments-svc → postgres",
     status: "204 No Content",
     body: "",
     note: "payment record deleted.",
@@ -139,6 +149,7 @@ const ROUTES: Record<string, RouteDef> = {
   "DELETE /auth/token": {
     service: "auth-svc",
     outbound: ["r-client-gw", "r-gw-auth", "r-auth-redis"],
+    trace: "client → gateway → auth-svc → redis",
     status: "204 No Content",
     body: "",
     note: "token revoked.",
@@ -163,6 +174,8 @@ interface FlightV {
   dwellLeft: number;
   kind: VKind;
   route: RouteDef;
+  method: string;
+  endpoint: string;
   ms: number;
 }
 
@@ -186,8 +199,19 @@ interface Sim {
   flight: FlightV | null;
   ambient: AmbientV[];
   nodes: Record<string, NodeSim>;
-  response: { route: RouteDef; ms: number; key: number } | null;
+  response: {
+    route: RouteDef;
+    method: string;
+    endpoint: string;
+    ms: number;
+    key: number;
+  } | null;
   nextId: number;
+  /* incident game */
+  incidentStart: number | null;
+  incidentsFixed: number;
+  bestMs: number | null;
+  lastMs: number | null;
 }
 
 const DATA_NODES = ["postgres", "redis"];
@@ -205,6 +229,10 @@ function initSim(): Sim {
     nodes,
     response: null,
     nextId: 1,
+    incidentStart: null,
+    incidentsFixed: 0,
+    bestMs: null,
+    lastMs: null,
   };
 }
 
@@ -262,7 +290,7 @@ function CarArt({ solid }: { solid?: boolean }) {
 function BikeArt({ solid }: { solid?: boolean }) {
   return (
     <g
-      stroke={solid ? "#E8491D" : "#1A1815"}
+      stroke={solid ? "var(--accent)" : "#1A1815"}
       strokeWidth={1.5}
       strokeLinecap="round"
       fill="none"
@@ -313,7 +341,7 @@ function SysNode({
           onSelect();
         }
       }}
-      className="cursor-pointer"
+      className="sysnode cursor-pointer"
     >
       <polygon
         points={`${geom.x + ISO_D},${geom.y - ISO_D} ${geom.x + geom.w + ISO_D},${geom.y - ISO_D} ${geom.x + geom.w},${geom.y} ${geom.x},${geom.y}`}
@@ -336,7 +364,7 @@ function SysNode({
           y={geom.y + geom.h + 6}
           width={geom.w}
           height={3}
-          fill="#E8491D"
+          fill="var(--accent)"
         />
       )}
       <text
@@ -433,21 +461,44 @@ export default function SystemPlayground() {
         let { flight, ambient, nextId } = s;
         const response = s.response;
 
-        // flight: advance the composed request
+        // flight: advance the composed request, eased like a physical thing
         let newResponse = response;
         if (flight) {
-          const speed = s.scenario === "slow-db" ? 45 : s.scenario === "flood" ? 150 : 130;
+          const baseSpeed =
+            s.scenario === "slow-db" ? 45 : s.scenario === "flood" ? 150 : 130;
+          const advance = (d: number, legStart: number, legEnd: number) => {
+            const p = Math.min(
+              1,
+              Math.max(0, (d - legStart) / Math.max(1, legEnd - legStart)),
+            );
+            // ease: unhurried at the ends of each leg, quick in the middle
+            const ease = frozen ? 1 : 0.35 + 0.65 * Math.sin(Math.PI * p);
+            return Math.min(legEnd, d + baseSpeed * 0.15 * ease);
+          };
           if (frozen) {
-            flight = { ...flight, dist: flight.total };
+            // reduced motion: resolve the round trip near-instantly
+            flight =
+              flight.dist < flight.outLen
+                ? { ...flight, dist: flight.outLen, dwellLeft: 0 }
+                : { ...flight, dist: flight.total, dwellLeft: 0 };
           } else if (flight.dist < flight.outLen) {
-            flight = { ...flight, dist: Math.min(flight.outLen, flight.dist + speed * 0.15) };
+            flight = { ...flight, dist: advance(flight.dist, 0, flight.outLen) };
           } else if (flight.dwellLeft > 0) {
             flight = { ...flight, dwellLeft: flight.dwellLeft - 150 };
           } else {
-            flight = { ...flight, dist: Math.min(flight.total, flight.dist + speed * 0.15) };
+            flight = {
+              ...flight,
+              dist: advance(flight.dist, flight.outLen, flight.total),
+            };
           }
           if (flight.dist >= flight.total) {
-            newResponse = { route: flight.route, ms: flight.ms, key: nextId };
+            newResponse = {
+              route: flight.route,
+              method: flight.method,
+              endpoint: flight.endpoint,
+              ms: flight.ms,
+              key: nextId,
+            };
             nextId += 1;
             flight = null;
           }
@@ -459,7 +510,9 @@ export default function SystemPlayground() {
           .map((v) => {
             if (frozen) return v;
             const len = lengths[v.road] ?? 200;
-            return { ...v, t: v.t + (v.speed * 0.15) / len };
+            const t = Math.min(1, Math.max(0, v.t));
+            const ease = 0.7 + 0.3 * Math.sin(Math.PI * t);
+            return { ...v, t: v.t + ((v.speed * 0.15) / len) * ease };
           })
           .filter((v) => v.t < 1);
         if (s.auto && !frozen && ambient.length < maxAmbient && Math.random() < (s.scenario === "flood" ? 0.75 : 0.3)) {
@@ -559,6 +612,8 @@ export default function SystemPlayground() {
               dwellLeft: dwell,
               kind: METHOD_VEHICLE[method],
               route,
+              method,
+              endpoint,
               ms,
             },
           },
@@ -566,15 +621,46 @@ export default function SystemPlayground() {
   };
 
   const setScenario = (sc: Scenario) =>
-    setSim((s) => ({ ...s, scenario: sc }));
+    setSim((s) => {
+      if (sc === s.scenario) return s;
+      if (sc === "healthy") {
+        // fix everything: stop the incident clock, log the score
+        if (s.incidentStart == null) return { ...s, scenario: sc };
+        const ms = (Date.now() - s.incidentStart) / 1000;
+        return {
+          ...s,
+          scenario: sc,
+          incidentStart: null,
+          incidentsFixed: s.incidentsFixed + 1,
+          bestMs: s.bestMs == null ? ms : Math.min(s.bestMs, ms),
+          lastMs: ms,
+        };
+      }
+      // chaos: open an incident, start the clock
+      return { ...s, scenario: sc, incidentStart: Date.now() };
+    });
+
+  const incidentSecs =
+    sim.incidentStart != null
+      ? Math.floor((Date.now() - sim.incidentStart) / 1000)
+      : null;
 
   const statusText = (): string => {
     if (sim.flight) return "request on its way…";
-    if (sim.scenario === "slow-db") return "the database is slow. everything is crawling";
-    if (sim.scenario === "flood") return "too much traffic. everything is sweating";
+    if (sim.scenario === "slow-db")
+      return `the database is slow. incident open · ${incidentSecs ?? 0}s`;
+    if (sim.scenario === "flood")
+      return `traffic flood. incident open · ${incidentSecs ?? 0}s`;
+    if (sim.lastMs != null)
+      return `all clear · last incident resolved in ${sim.lastMs.toFixed(0)}s`;
     return "all clear";
   };
-  const statusWarn = sim.scenario !== "healthy";
+  const statusDot =
+    sim.scenario === "slow-db"
+      ? "bg-flame"
+      : sim.scenario === "flood"
+        ? "bg-warn"
+        : "bg-ok";
 
   const selectedNode = selected
     ? (systemNodes.find((n) => n.id === selected) ?? null)
@@ -665,12 +751,27 @@ export default function SystemPlayground() {
           </div>
         </div>
 
-        <p className="mt-4 border-t border-rule pt-3 font-mono text-xs">
-          <span className="text-faint">status · </span>
-          <span className={statusWarn ? "text-flame-deep" : "text-ink"}>
-            {statusText()}
-          </span>
-        </p>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-rule pt-3 font-mono text-xs">
+          <p>
+            <span
+              aria-hidden="true"
+              className={`mr-2 inline-block h-2 w-2 ${statusDot}`}
+            />
+            <span className="text-faint">status · </span>
+            <span
+              className={
+                sim.scenario !== "healthy" ? "text-flame-deep" : "text-ink"
+              }
+            >
+              {statusText()}
+            </span>
+          </p>
+          <p className="tnum text-faint">
+            incidents fixed: {sim.incidentsFixed}
+            {" · "}best:{" "}
+            {sim.bestMs != null ? `${sim.bestMs.toFixed(0)}s` : "-"}
+          </p>
+        </div>
       </div>
 
       {/* diagram */}
@@ -759,11 +860,21 @@ export default function SystemPlayground() {
         {sim.response ? (
           <motion.div
             key={sim.response.key}
-            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 14, scale: 0.99 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={
+              reduceMotion
+                ? { duration: 0 }
+                : { type: "spring", stiffness: 320, damping: 26 }
+            }
           >
-            <p className="tnum font-mono text-sm text-flame-deep">
+            <p className="font-mono text-sm font-medium text-ink">
+              {sim.response.method} {sim.response.endpoint}
+            </p>
+            <p className="tnum mt-1 font-mono text-[11px] text-faint">
+              {sim.response.route.trace}
+            </p>
+            <p className="tnum mt-2 font-mono text-sm text-flame-deep">
               ← {sim.response.route.status} · {sim.response.ms}ms
             </p>
             <pre className="tnum mt-2 inline-block border border-rule bg-cool-1 px-3 py-2 font-mono text-sm text-ink">

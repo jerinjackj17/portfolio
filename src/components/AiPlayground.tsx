@@ -231,7 +231,7 @@ export default function AiPlayground() {
                 step={1}
                 value={size}
                 onChange={(e) => setSize(Number(e.target.value))}
-                className="mt-2 block w-48 max-w-full accent-[#E8491D]"
+                className="mt-2 block w-48 max-w-full accent-[var(--accent)]"
               />
             </div>
             <button

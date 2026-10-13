@@ -21,9 +21,6 @@ export default function Contact() {
           {profile.email}
         </a>
         <div className="flex flex-col gap-1 border-b border-rule py-4 font-mono text-sm text-smoke md:flex-row md:items-center md:gap-8">
-          <a href={`tel:${profile.phone.replace(/-/g, "")}`} className="u-link tnum w-fit">
-            {profile.phone}
-          </a>
           <a href={profile.github} target="_blank" rel="noreferrer" className="u-link w-fit">
             github →
           </a>

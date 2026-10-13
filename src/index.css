@@ -1,20 +1,33 @@
 @import "tailwindcss";
 
+/* Visitor accent theme: --accent / --accent-deep are set on :root and
+   switched at runtime by the accent switcher (persisted in localStorage).
+   Every accent-colored utility resolves through these variables. */
+:root {
+  --accent: #e8491d;
+  --accent-deep: #b23a12;
+}
+
 @theme {
   --color-paper: #fbf8f1;
   --color-ink: #1a1815;
   --color-smoke: #6b6560;
   --color-faint: #a39a8d;
   --color-rule: #e5e0d8;
-  --color-flame: #e8491d;
-  --color-flame-deep: #b23a12;
+  /* accent-driven: recolored by the theme switcher */
+  --color-flame: var(--accent);
+  --color-flame-deep: var(--accent-deep);
+  --color-hot: var(--accent);
+  --color-midhot: #e8703a;
   --color-cool-1: #f6efe2;
   --color-cool-2: #efe2cc;
   --color-warm-1: #f2c29b;
-  --color-hot: #e8491d;
-  --color-midhot: #e8703a;
+  /* functional status colors: playground only, flat, no gradients */
+  --color-ok: #2e7d32;
+  --color-warn: #c77414;
 
-  --font-display: "Zilla Slab", "Georgia", serif;
+  /* display type behind one variable so the face can be swapped trivially */
+  --font-display: "Alfa Slab One", "Georgia", serif;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 }
@@ -75,4 +88,27 @@ body {
   html {
     scroll-behavior: auto;
   }
+}
+
+/* Playground nodes: physical hover lift, halted under reduced motion */
+.sysnode {
+  transition: transform 0.18s ease-out;
+}
+.sysnode:hover,
+.sysnode:focus-visible {
+  transform: translateY(-3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sysnode:hover,
+  .sysnode:focus-visible {
+    transform: none;
+  }
+}
+
+/* Flame graph frames: crisp 1px inset borders, a precision instrument */
+.fg-frame {
+  box-shadow: inset 0 0 0 1px rgba(26, 24, 21, 0.32);
+}
+.fg-frame-hot {
+  box-shadow: inset 0 0 0 1px rgba(26, 24, 21, 0.45);
 }

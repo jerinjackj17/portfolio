@@ -2,7 +2,6 @@ export const profile = {
   name: "Jerin Jack",
   title: "Software Engineer",
   email: "jerinjack28@gmail.com",
-  phone: "312-918-9649",
   github: "https://github.com/jerinjackj17",
   linkedin: "https://linkedin.com/in/jerinjackj",
   location: "United States | Open to Relocation",
