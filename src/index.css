@@ -1,112 +1,78 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --color-paper: #faf9f7;
+  --color-ink: #1a1815;
+  --color-smoke: #6b6560;
+  --color-faint: #a39a8d;
+  --color-rule: #e5e0d8;
+  --color-flame: #e8491d;
+  --color-flame-deep: #b23a12;
+  --color-cool-1: #f4ede1;
+  --color-cool-2: #efe2cc;
+  --color-warm-1: #f2c29b;
+  --color-hot: #e8491d;
+  --color-midhot: #e8703a;
 
-  --color-ink: #0a0a0e;
-  --color-panel: #111117;
-  --color-panel-2: #16161d;
-  --color-line: rgba(255, 255, 255, 0.08);
-  --color-fog: #ededf2;
-  --color-dim: #a1a1aa;
-  --color-faint: #6b6b76;
-  --color-amber-glow: #f5a524;
-  --color-amber-deep: #b97a12;
-  --color-ok: #34d399;
+  --font-display: "Fraunces", "Georgia", serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 }
 
 html {
   scroll-behavior: smooth;
 }
 
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-flame);
+  color: var(--color-paper);
+}
+
+/* Subtle paper grain: flat SVG noise, no gradients */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Editorial link: underline grows on hover, no pills, no glow */
+.u-link {
+  text-decoration: underline;
+  text-decoration-color: var(--color-rule);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  transition:
+    text-decoration-color 0.2s ease,
+    color 0.2s ease;
+}
+.u-link:hover {
+  text-decoration-color: var(--color-flame);
+  color: var(--color-flame-deep);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-flame);
+  outline-offset: 3px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
-}
-
-body {
-  background-color: var(--color-ink);
-  color: var(--color-fog);
-  font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  overflow-x: hidden;
-  margin: 0;
-}
-
-/* Subtle blueprint grid carried across the whole site */
-.blueprint {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
-  background-size: 44px 44px;
-}
-
-.blueprint-fade {
-  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, black 30%, transparent 100%);
-  mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, black 30%, transparent 100%);
-}
-
-::selection {
-  background: rgba(245, 165, 36, 0.28);
-  color: #fff;
-}
-
-/* Thin dark scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-}
-::-webkit-scrollbar-track {
-  background: #0a0a0e;
-}
-::-webkit-scrollbar-thumb {
-  background: #26262e;
-  border-radius: 8px;
-  border: 2px solid #0a0a0e;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3a3a45;
-}
-
-/* Animated availability pulse */
-@keyframes ping-soft {
-  0% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-  80%,
-  100% {
-    transform: scale(2.4);
-    opacity: 0;
-  }
-}
-
-.pulse-dot {
-  position: relative;
-}
-
-.pulse-dot::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: var(--color-ok);
-  animation: ping-soft 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pulse-dot::after {
-    animation: none;
-  }
-}
-
-/* Focus visibility for keyboard users */
-a:focus-visible,
-button:focus-visible {
-  outline: 2px solid var(--color-amber-glow);
-  outline-offset: 3px;
-  border-radius: 4px;
 }
