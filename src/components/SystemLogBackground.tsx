@@ -329,7 +329,6 @@ function drawGlyph(
 }
 
 const WORLD_MUL = 3; // world height = 3x viewport height
-const PARALLAX = 0.35; // background moves at 0.35x of scrollY
 
 export default function SystemLogBackground() {
   const reduceMotion = useReducedMotion();
@@ -439,13 +438,21 @@ export default function SystemLogBackground() {
       });
       // keep packets on valid edges
       packets = packets.filter((p) => p.from < nodes.length && p.to < nodes.length);
-      camTarget = clampCam(window.scrollY * PARALLAX);
+      camTarget = parallaxCam();
       camY = camTarget;
       spawnToTarget(true);
     }
 
     function clampCam(v: number): number {
       return Math.min(Math.max(v, 0), Math.max(0, worldH - H));
+    }
+
+    // adaptive parallax: camera always traverses the full world exactly
+    // across the full page scroll, so the network never stalls early
+    function parallaxCam(): number {
+      const scrollMax = Math.max(1, document.documentElement.scrollHeight - H);
+      const factor = (worldH - H) / scrollMax;
+      return clampCam(window.scrollY * factor);
     }
 
     function randomEdge(rnd: () => number): [number, number] | null {
@@ -687,7 +694,7 @@ export default function SystemLogBackground() {
       frame++;
       if (frame % 120 === 0) readAccent();
       // eased parallax camera toward scroll position
-      camTarget = clampCam(window.scrollY * PARALLAX);
+      camTarget = parallaxCam();
       camY += (camTarget - camY) * 0.08;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, -camY * dpr);
       ctx!.clearRect(0, camY, W, H);
