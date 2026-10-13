@@ -12,6 +12,7 @@ export const navLinks = [
   { label: "About", href: "#about" },
   { label: "Experience", href: "#experience" },
   { label: "Projects", href: "#projects" },
+  { label: "Ask", href: "#ask" },
   { label: "Skills", href: "#skills" },
   { label: "Contact", href: "#contact" },
 ];
@@ -71,6 +72,7 @@ export const careerFrames: CareerFrame[] = [
       "Developed REST APIs and backend services for internal enterprise applications with Java and Spring Boot on Oracle and MySQL.",
       "Applied SOLID principles and design patterns (DTOs, repository pattern, centralized exception handling).",
       "Optimized high-read reporting operations through query tuning and targeted indexing.",
+      "Supported production deployments on Linux and Unix, including Tomcat configuration and shell scripting.",
     ],
     children: [
       {
@@ -80,6 +82,7 @@ export const careerFrames: CareerFrame[] = [
         details: [
           "Optimized high-read reporting operations through query tuning and targeted indexing.",
           "Service-layer validations and application logging to improve reliability.",
+          "Validated APIs with Postman.",
         ],
         widthPct: 62,
         offsetPct: 19,
@@ -110,6 +113,7 @@ export const careerFrames: CareerFrame[] = [
           "Reduced peak-time payment API response times by nearly 50%.",
           "Oracle and PL/SQL query tuning, index optimization, transaction management.",
           "Redis caching in front of the hottest read paths.",
+          "Mentored junior developers on the team.",
         ],
         widthPct: 68,
         offsetPct: 16,
@@ -187,6 +191,7 @@ export const careerFrames: CareerFrame[] = [
       "Improved response times by 25% on high-traffic endpoints: fixed a Hibernate mapping issue, added missing indexes, optimized SQL across Oracle and PostgreSQL.",
       "Implemented asynchronous processing with Kafka and JMS for audit events and workflow notifications.",
       "Mentored two junior developers. Zero production defects over the past year.",
+      "Used AI coding assistants for boilerplate generation, test scaffolding, and documentation.",
     ],
     children: [
       {
@@ -197,6 +202,7 @@ export const careerFrames: CareerFrame[] = [
           "12+ production REST endpoints as Spring Boot microservices with reusable DTOs.",
           "25% faster on high-traffic endpoints after Hibernate and index work.",
           "Mentored two junior developers; enforced standards through code reviews.",
+          "Zero production defects over the past year.",
         ],
         widthPct: 92,
         offsetPct: 4,
@@ -209,7 +215,6 @@ export const careerFrames: CareerFrame[] = [
 /* ------------------------------------------------------------------ */
 
 export interface ExperienceEntry {
-  version: string;
   company: string;
   role: string;
   dates: string;
@@ -219,7 +224,6 @@ export interface ExperienceEntry {
 
 export const experience: ExperienceEntry[] = [
   {
-    version: "v4.2",
     company: "AVPS Technologies Inc",
     role: "Software Engineer",
     dates: "Jul 2026 → present",
@@ -232,7 +236,6 @@ export const experience: ExperienceEntry[] = [
     ],
   },
   {
-    version: "v3.0",
     company: "Chicago Education Advocacy Cooperative",
     role: "Software Engineer",
     dates: "Aug 2025 → Jul 2026",
@@ -245,7 +248,6 @@ export const experience: ExperienceEntry[] = [
     ],
   },
   {
-    version: "v2.0",
     company: "Gulf International Bank (via TCS)",
     role: "Backend Developer",
     dates: "Oct 2021 → Jul 2023",
@@ -258,7 +260,6 @@ export const experience: ExperienceEntry[] = [
     ],
   },
   {
-    version: "v1.0",
     company: "Iota Automation Private Limited",
     role: "Java Developer",
     dates: "Apr 2020 → Jul 2021",
@@ -309,64 +310,66 @@ export const projects: Project[] = [
   },
 ];
 
-export const aiLab = [
+export const skillGroups: { name: string; items: string; usedAt: string }[] = [
   {
-    name: "QueryLens",
-    status: "w.i.p.",
-    description:
-      "Paste a slow query, get indexing and rewrite suggestions with plain-English explanations.",
+    name: "Languages",
+    items: "Java 8/11/17, SQL, TypeScript",
+    usedAt: "the daily drivers, in every role since 2020",
   },
-  {
-    name: "DocuChat",
-    status: "w.i.p.",
-    description:
-      "Upload a PDF, ask questions, get answers grounded in the document with cited page numbers.",
-  },
-  {
-    name: "TicketTriage",
-    status: "w.i.p.",
-    description:
-      "Paste a support ticket, get urgency and topic classification plus a drafted first response.",
-  },
-];
-
-export const skillGroups: { name: string; items: string }[] = [
-  { name: "Languages", items: "Java 8/11/17, SQL, TypeScript" },
   {
     name: "Backend & Frameworks",
     items:
       "Spring Boot, Spring MVC, Spring Data, Spring Security, Hibernate and JPA, REST API Design, Microservices Architecture, gRPC, SOLID Principles, OOP",
+    usedAt: "Spring Boot microservices at AVPS, the bank, and Chicago Edu",
   },
   {
     name: "Architecture",
     items:
       "Microservices, Event Driven Systems, API Design, Design Patterns, Caching Strategies, Fault Tolerance",
+    usedAt: "event-driven design with Kafka at AVPS and Chicago Edu",
   },
   {
     name: "Databases",
     items:
       "Oracle (PL/SQL, query tuning), PostgreSQL, MySQL, MongoDB, Redis, Indexing, Query Optimization, Transactions",
+    usedAt: "Oracle tuning at the bank, PostgreSQL at Chicago Edu, Redis in front of hot reads",
   },
   {
     name: "Messaging & Streaming",
     items: "Apache Kafka, JMS, asynchronous processing",
+    usedAt: "Kafka audit events and workflow notifications at AVPS and Chicago Edu",
   },
   {
     name: "Cloud & DevOps",
     items:
       "AWS (ECS, SDKs), Azure, Docker, Kubernetes, Jenkins, GitHub Actions, CI/CD, Linux and Unix, Maven, Gradle, Git, Tomcat, Shell Scripting",
+    usedAt: "Docker on AWS ECS, Jenkins and GitHub Actions pipelines, Linux deploys",
   },
-  { name: "Security", items: "OAuth2, JWT, TLS, Role Based Access Control" },
-  { name: "Testing", items: "JUnit, Mockito, Postman, SonarQube" },
+  {
+    name: "Security",
+    items: "OAuth2, JWT, TLS, Role Based Access Control",
+    usedAt: "OAuth2 and JWT service-to-service auth for the banking client",
+  },
+  {
+    name: "Testing",
+    items: "JUnit, Mockito, Postman, SonarQube",
+    usedAt: "unit and integration tests with SonarQube quality gates",
+  },
   {
     name: "AI Tools",
     items:
       "AI coding assistants (code generation, test scaffolding, documentation); daily Claude Code / Cursor-style agent-loop coding (3 years)",
+    usedAt: "daily agent-loop coding: boilerplate, test scaffolding, docs",
   },
-  { name: "Frontend", items: "Angular 8, HTML5, CSS3, TypeScript" },
+  {
+    name: "Frontend",
+    items: "Angular 8, HTML5, CSS3, TypeScript",
+    usedAt: "Angular 8 front end on the vehicle reservation platform",
+  },
   {
     name: "Practices",
     items: "Agile and Scrum, Jira, Code Reviews, Technical Documentation",
+    usedAt: "Agile sprints, Jira boards, code reviews, mentoring juniors",
   },
 ];
 
@@ -409,11 +412,11 @@ export const systemNodes: SystemNode[] = [
   {
     id: "client",
     label: "client",
-    role: "you, clicking around.",
-    story: "Every request below starts here. Go on, break something.",
+    role: "you. pick a request and hit send.",
+    story: "Every trip on this map starts with you.",
     details: [
-      "Cars are API requests. Motorbikes are async events.",
-      "The traffic slider sets the load. The chaos buttons do the rest.",
+      "Cars are the requests you send from the composer above.",
+      "Watch one drive the whole round trip and come back with an answer.",
     ],
     baseRpm: 8200,
     baseP50: 0,
@@ -421,12 +424,12 @@ export const systemNodes: SystemNode[] = [
   {
     id: "api-gateway",
     label: "api-gateway",
-    role: "the front door. routes every request.",
-    story: "12+ production REST endpoints shipped as Spring Boot microservices.",
+    role: "spring boot service · java 17. the front door.",
+    story: "Every request knocks here first.",
     details: [
-      "Controller, service, repository architecture with reusable DTOs.",
-      "Zero production defects over the past year.",
-      "Containerized with Docker, deployed to AWS ECS.",
+      "Routes /payments, /reports and /auth traffic to the right service.",
+      "A dozen-plus production endpoints live behind this box.",
+      "Dockerized, running on AWS ECS.",
     ],
     baseRpm: 8200,
     baseP50: 12,
@@ -434,11 +437,11 @@ export const systemNodes: SystemNode[] = [
   {
     id: "auth-svc",
     label: "auth-svc",
-    role: "who are you? proves it.",
-    story: "OAuth2 and JWT-based authentication for service-to-service calls.",
+    role: "spring boot service · java 17. proves who you are.",
+    story: "Hands out tokens, checks them at the door.",
     details: [
-      "Secured service-to-service communication for a regulated banking client.",
-      "Spring Security with request validation and error code handling.",
+      "OAuth2 and JWT for service-to-service calls.",
+      "Built for a regulated bank, where auth is never optional.",
     ],
     baseRpm: 1100,
     baseP50: 24,
@@ -446,12 +449,12 @@ export const systemNodes: SystemNode[] = [
   {
     id: "payments-svc",
     label: "payments-svc",
-    role: "moves money. carefully.",
-    story: "Peak-time payment APIs, nearly 50% faster.",
+    role: "spring boot service · java 17. moves money, carefully.",
+    story: "The busiest box on the map. It used to crawl at peak time.",
     details: [
-      "Oracle and PL/SQL query tuning, index optimization, transaction management.",
+      "Oracle and PL/SQL tuning, better indexes, tighter transactions.",
       "Redis caching in front of the hottest read paths.",
-      "Balance transfers, international payments, reconciliation.",
+      "Peak-time responses now land in about half the time.",
     ],
     baseRpm: 2400,
     baseP50: 96,
@@ -459,11 +462,12 @@ export const systemNodes: SystemNode[] = [
   {
     id: "reports-svc",
     label: "reports-svc",
-    role: "answers hard questions. slowly, then fast.",
-    story: "A recurring reporting query went from seconds to under a second.",
+    role: "spring boot service · java 17. answers hard questions.",
+    story: "The report everyone waited on. Now it finishes fast.",
     details: [
-      "Rewrote an inefficient join and added targeted indexes.",
-      "Normalized PostgreSQL schemas designed for analytics workloads.",
+      "A bad join rewritten, indexes added where they mattered.",
+      "PostgreSQL schemas shaped for analytics workloads.",
+      "Seconds became less than one.",
     ],
     baseRpm: 310,
     baseP50: 180,
@@ -472,11 +476,11 @@ export const systemNodes: SystemNode[] = [
     id: "kafka",
     label: "kafka",
     role: "the nervous system. async everything.",
-    story: "Async audit events and workflow notifications.",
+    story: "Events in, events out. Nobody waits on anybody.",
     details: [
-      "Replaced synchronous service calls with Kafka event flows.",
-      "Shipped at two employers: AVPS Technologies and the Chicago Education Advocacy Cooperative.",
-      "Less coupling between services, better fault isolation.",
+      "Audit events and workflow notifications ride this bus.",
+      "Replaced synchronous calls that used to chain failures together.",
+      "Less coupling between services, calmer nights.",
     ],
     baseRpm: 12000,
     baseP50: 6,
@@ -485,10 +489,10 @@ export const systemNodes: SystemNode[] = [
     id: "postgres",
     label: "postgres",
     role: "remembers everything.",
-    story: "Normalized schemas, tuned until they behave.",
+    story: "The source of truth. Tuned until it behaves.",
     details: [
       "Query tuning and indexing across Oracle and PostgreSQL.",
-      "Schemas designed for analytics and reporting workloads.",
+      "Schemas built for reporting workloads.",
     ],
     baseRpm: 3100,
     baseP50: 8,
@@ -496,38 +500,61 @@ export const systemNodes: SystemNode[] = [
   {
     id: "redis",
     label: "redis",
-    role: "remembers fast things faster.",
-    story: "Redis caching in front of the hottest read paths.",
+    role: "remembers the fast things faster.",
+    story: "The shortcut. Hot reads never touch the database.",
     details: [
-      "Helped cut peak-time payment API latency nearly in half.",
-      "Caching strategies for high-read workloads.",
+      "Caching in front of the busiest read paths.",
+      "Part of why peak-time payments got twice as fast.",
     ],
     baseRpm: 9400,
     baseP50: 2,
-  },
-  {
-    id: "mongo",
-    label: "mongo",
-    role: "files the documents.",
-    story: "Document pipeline results, stored by type.",
-    details: [
-      "AI document processing: results stored in MongoDB and Oracle by document type.",
-      "Kafka-based async job queuing behind it, with status tracking APIs.",
-    ],
-    baseRpm: 640,
-    baseP50: 14,
   },
 ];
 
 export const about = {
   paragraphs: [
-    "I'm Jerin Jack, a software engineer with 4+ years building the parts of software users never see but always feel: APIs, microservices, data pipelines. Most of my work has been Java and Spring Boot, with a lot of time spent making databases behave. Oracle and PostgreSQL tuning, Redis caching, Kafka event flows. I use AI coding agents daily and they make me faster, not lazier.",
-    "At Gulf International Bank, peak-time payment APIs got nearly 50% faster after a round of query and index work. At AVPS Technologies I shipped 12+ production endpoints and kept a zero-defect record over the past year. I like the unglamorous problems: the slow endpoint, the flaky deploy, the report that takes ten seconds.",
+    "I'm Jerin Jack. I build the parts of software you never see but always feel: the APIs, the services, the data layer underneath. Java and Spring Boot are home turf, and I have spent an unreasonable amount of time making databases behave. Oracle, PostgreSQL, Redis, Kafka. I work with AI coding agents every day; they make me faster, not lazier.",
+    "The work I'm proudest of is unglamorous. At a bank, the payment API that crawled at peak time now runs nearly twice as fast. At an ed-tech nonprofit, the report everyone waited on finishes in under a second. Slow endpoints, flaky deploys, ten-second reports: that is my beat.",
   ],
   stats: [
-    { value: "4+", label: "years experience" },
-    { value: "12+", label: "production endpoints shipped" },
-    { value: "~50%", label: "peak API latency cut" },
-    { value: "0", label: "prod defects in the last year" },
+    { value: "4+", label: "years building backends", num: 4, prefix: "", suffix: "+" },
+    { value: "12+", label: "production endpoints shipped", num: 12, prefix: "", suffix: "+" },
+    { value: "~50%", label: "peak latency cut", num: 50, prefix: "~", suffix: "%" },
+    { value: "0", label: "defects last year", num: 0, prefix: "", suffix: "" },
   ],
 };
+
+/* ------------------------------------------------------------------ */
+/* AI playground: three short career docs for the simulated RAG toy.  */
+/* Fresh copy, facts from the master brief §1 only.                    */
+/* ------------------------------------------------------------------ */
+
+export interface RagDoc {
+  id: string;
+  title: string;
+  text: string;
+}
+
+export const ragDocs: RagDoc[] = [
+  {
+    id: "payments",
+    title: "the payment speedup",
+    text: "At Gulf International Bank, working through TCS, Jerin tuned the payment APIs that slowed down at peak time. Oracle and PL/SQL query tuning, better indexes, tighter transactions, and Redis caching in front of the hottest reads cut peak-time response times by nearly 50%.",
+  },
+  {
+    id: "reporting",
+    title: "the ten-second report",
+    text: "At the Chicago Education Advocacy Cooperative, a recurring reporting query took several seconds against the PostgreSQL database. Jerin rewrote the inefficient join, added targeted indexes, and normalized the schema. The same report now finishes in under a second.",
+  },
+  {
+    id: "kafka",
+    title: "going async",
+    text: "At AVPS Technologies, Jerin replaced synchronous service calls with Kafka event flows for audit events and workflow notifications. Less coupling between services, better fault isolation. He mentored two junior developers and kept zero production defects over the past year.",
+  },
+];
+
+export const ragSuggestions = [
+  "where did Jerin cut payment latency?",
+  "what database did the reporting fix use?",
+  "where did he use Kafka?",
+];

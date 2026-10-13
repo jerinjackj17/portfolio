@@ -1,57 +1,78 @@
-import { projects, aiLab, profile } from "../data";
+import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { projects, profile } from "../data";
 import SectionHeader from "./SectionHeader";
 
 export default function Projects() {
-  return (
-    <section id="projects" className="mx-auto max-w-5xl scroll-mt-24 px-5 pt-20 md:px-8 md:pt-28">
-      <SectionHeader index="03" title="Projects" />
-      <div className="mt-6">
-        {projects.map((p) => (
-          <article key={p.index} className="border-t border-rule py-8 first:border-t-0 first:pt-2">
-            <div className="flex items-baseline gap-4">
-              <span className="tnum font-mono text-sm text-flame-deep">{p.index}</span>
-              <h3 className="font-display text-2xl font-medium tracking-tight text-ink md:text-[1.7rem]">
-                {p.title}
-              </h3>
-            </div>
-            <div className="mt-3 max-w-3xl space-y-3 text-[15px] leading-relaxed text-ink/90">
-              {p.description.map((d, i) => (
-                <p key={i}>{d}</p>
-              ))}
-            </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="font-mono text-xs text-smoke">{p.stack}</p>
-              <a href={profile.github} target="_blank" rel="noreferrer" className="u-link font-mono text-xs uppercase tracking-[0.16em] text-ink">
-                code →
-              </a>
-            </div>
-          </article>
-        ))}
-        <div className="border-t border-rule" />
-      </div>
+  const reduceMotion = useReducedMotion();
+  const [open, setOpen] = useState<string | null>(projects[0].index);
 
-      <div className="mt-12">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-smoke">
-          <span className="text-flame-deep">ai lab</span>
-          <span className="mx-2 text-faint">·</span>
-          now building
-        </p>
-        <div className="mt-4 border-t border-ink/70">
-          {aiLab.map((a) => (
-            <div
-              key={a.name}
-              className="flex flex-col gap-1 border-b border-rule py-4 md:flex-row md:items-baseline md:gap-6"
-            >
-              <div className="flex items-baseline gap-3 md:w-64 md:shrink-0">
-                <span className="font-display text-xl font-medium text-ink">{a.name}</span>
-                <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-flame-deep">
-                  {a.status}
+  return (
+    <section
+      id="projects"
+      className="mx-auto max-w-5xl scroll-mt-24 px-5 pt-20 md:px-8 md:pt-28"
+    >
+      <SectionHeader title="Projects" />
+      <p className="mt-4 font-mono text-xs text-faint">
+        shipped things. click one to open it.
+      </p>
+
+      <div className="mt-6 border-t border-ink/70">
+        {projects.map((p) => {
+          const isOpen = open === p.index;
+          return (
+            <article key={p.index} className="border-b border-rule">
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : p.index)}
+                aria-expanded={isOpen}
+                className="group flex w-full items-baseline gap-4 py-6 text-left"
+              >
+                <span className="tnum shrink-0 font-mono text-sm text-flame-deep">
+                  {p.index}
                 </span>
-              </div>
-              <p className="text-[15px] leading-relaxed text-ink/85">{a.description}</p>
-            </div>
-          ))}
-        </div>
+                <h3 className="font-display text-2xl font-semibold tracking-tight text-ink group-hover:text-flame-deep md:text-[1.7rem]">
+                  {p.title}
+                </h3>
+                <span
+                  aria-hidden="true"
+                  className="ml-auto shrink-0 font-mono text-sm text-faint transition-transform"
+                  style={{
+                    transform: isOpen ? "rotate(45deg)" : "none",
+                    display: "inline-block",
+                  }}
+                >
+                  +
+                </span>
+              </button>
+              {isOpen && (
+                <motion.div
+                  initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="max-w-3xl space-y-3 pb-2 text-[15px] leading-relaxed text-ink/90">
+                    {p.description.map((d, i) => (
+                      <p key={i}>{d}</p>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-6">
+                    <p className="font-mono text-xs text-smoke">{p.stack}</p>
+                    <a
+                      href={profile.github}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="u-link font-mono text-xs uppercase tracking-[0.16em] text-ink"
+                    >
+                      code →
+                    </a>
+                  </div>
+                </motion.div>
+              )}
+            </article>
+          );
+        })}
       </div>
     </section>
   );

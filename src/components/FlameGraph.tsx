@@ -101,11 +101,12 @@ export default function FlameGraph() {
 
   return (
     <figure>
-      <figcaption className="mb-3 font-mono text-xs text-smoke">
-        <span className="text-flame-deep">fig. 02</span>
-        <span className="mx-2 text-rule">/</span>
-        career flame graph. width = time. hover a frame, click to inspect.
-      </figcaption>
+      <h2 className="font-display text-3xl font-semibold tracking-tight text-ink md:text-4xl">
+        The career, as a flame graph
+      </h2>
+      <p className="mb-4 mt-2 font-mono text-xs text-smoke">
+        width = time. click a frame to expand it.
+      </p>
 
       <div className="overflow-x-auto pb-1">
         <div className="relative min-w-[720px] pt-20">
@@ -131,11 +132,12 @@ export default function FlameGraph() {
           </div>
 
           {/* row 1: career frames */}
-          <div className="relative mt-[3px] h-14 w-full">
+          <div className="relative mt-[3px] h-20 w-full">
             {careerFrames.map((f, i) => {
               const l = leftPct(f.start);
               const w = pct(f.start, f.end);
               const id = `c-${f.id}`;
+              const isSel = selected?.frame.id === f.id;
               return (
                 <motion.div
                   key={id}
@@ -157,8 +159,12 @@ export default function FlameGraph() {
                   onMouseLeave={hideTip}
                   onFocus={() => showTip(id, `${f.label} · ${f.dates}`, f.story)}
                   onBlur={hideTip}
-                  className={`${frameClass(f.heat, "cursor-pointer border-r-2 border-paper")}`}
-                  style={{ left: `calc(${l}% + 1px)`, ...(reduceMotion ? { width: `${w}%` } : {}) }}
+                  className={`${frameClass(f.heat, `cursor-pointer border-r-2 border-paper${isSel ? " outline outline-2 outline-flame -outline-offset-2" : ""}`)}`}
+                  style={{
+                    left: `calc(${l}% + 1px)`,
+                    minWidth: w < 8 ? 100 : undefined,
+                    ...(reduceMotion ? { width: `${w}%` } : {}),
+                  }}
                   initial={reduceMotion ? false : { width: 0 }}
                   whileInView={reduceMotion ? undefined : { width: `${w}%` }}
                   viewport={{ once: true, margin: "-60px" }}
@@ -180,7 +186,7 @@ export default function FlameGraph() {
           </div>
 
           {/* row 2: hot frames */}
-          <div className="relative mt-[3px] h-12 w-full">
+          <div className="relative mt-[3px] h-16 w-full">
             {careerFrames.map((f, i) =>
               f.children.map((c) => {
                 const parentL = leftPct(f.start);
@@ -188,6 +194,7 @@ export default function FlameGraph() {
                 const l = parentL + (c.offsetPct / 100) * parentW;
                 const w = (c.widthPct / 100) * parentW;
                 const id = `h-${c.id}`;
+                const isSel = selected?.frame.id === c.id;
                 return (
                   <motion.div
                     key={id}
@@ -209,7 +216,7 @@ export default function FlameGraph() {
                     onMouseLeave={hideTip}
                     onFocus={() => showTip(id, c.label, c.story)}
                     onBlur={hideTip}
-                    className={`${frameClass(c.heat, "cursor-pointer border-r-2 border-paper")}`}
+                    className={`${frameClass(c.heat, `cursor-pointer border-r-2 border-paper${isSel ? " outline outline-2 outline-flame -outline-offset-2" : ""}`)}`}
                     style={{ left: `calc(${l}% + 1px)`, ...(reduceMotion ? { width: `${w}%` } : {}) }}
                     initial={reduceMotion ? false : { width: 0 }}
                     whileInView={reduceMotion ? undefined : { width: `${w}%` }}
@@ -246,7 +253,7 @@ export default function FlameGraph() {
       </div>
 
       <p className="mt-1 font-mono text-[11px] text-faint sm:hidden">
-        → scroll sideways to see the whole graph. tap a frame to inspect it.
+        → scroll sideways to see the whole graph. tap a frame to expand it.
       </p>
 
       {/* legend */}
@@ -265,7 +272,7 @@ export default function FlameGraph() {
       <div className="mt-5 border-y border-ink/70 py-5">
         <div className="mb-3 flex items-center justify-between">
           <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke">
-            frame detail
+            expanded frame
           </span>
           {selected && (
             <button
@@ -289,7 +296,7 @@ export default function FlameGraph() {
                 ? `${selected.parent.label} / ${selected.frame.label}`
                 : `${selected.frame.label} · ${selected.frame.dates}`}
             </p>
-            <p className="mt-2 max-w-2xl font-display text-xl leading-snug text-ink">
+            <p className="mt-2 max-w-2xl font-display text-2xl font-medium leading-snug text-ink">
               {selected.frame.story}
             </p>
             <ul className="mt-3 max-w-3xl">
@@ -325,7 +332,7 @@ export default function FlameGraph() {
             {tip.title}
           </p>
           <p className="mt-1 text-[13px] leading-snug text-ink">{tip.story}</p>
-          <p className="mt-1 font-mono text-[10px] text-faint">click to inspect →</p>
+          <p className="mt-1 font-mono text-[10px] text-faint">click to expand →</p>
         </div>
       )}
     </figure>

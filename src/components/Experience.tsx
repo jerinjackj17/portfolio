@@ -1,38 +1,80 @@
+import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { experience } from "../data";
 import SectionHeader from "./SectionHeader";
 
 export default function Experience() {
+  const reduceMotion = useReducedMotion();
+  const [open, setOpen] = useState<string | null>(experience[0].company);
+
   return (
-    <section id="experience" className="mx-auto max-w-5xl scroll-mt-24 px-5 pt-20 md:px-8 md:pt-28">
-      <SectionHeader index="02" title="Experience" />
-      <p className="mt-4 font-mono text-xs text-faint">release notes, newest first.</p>
-      <div className="mt-6">
-        {experience.map((e) => (
-          <article key={e.version} className="border-t border-rule py-8 first:border-t-0 first:pt-2">
-            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-              <span className="tnum font-mono text-sm font-medium text-flame-deep">
-                {e.version}
-              </span>
-              <h3 className="font-display text-2xl font-medium tracking-tight text-ink">
-                {e.company}
-              </h3>
-            </div>
-            <p className="tnum mt-1 font-mono text-xs uppercase tracking-[0.14em] text-smoke">
-              {e.role} · {e.dates} · {e.location}
-            </p>
-            <ul className="mt-4 max-w-3xl space-y-2.5">
-              {e.bullets.map((b, i) => (
-                <li
-                  key={i}
-                  className="border-l-2 border-rule pl-4 text-[15px] leading-relaxed text-ink/90"
+    <section
+      id="experience"
+      className="mx-auto max-w-5xl scroll-mt-24 px-5 pt-20 md:px-8 md:pt-28"
+    >
+      <SectionHeader title="Experience" />
+      <p className="mt-4 font-mono text-xs text-faint">
+        newest first. click a role to open it.
+      </p>
+
+      <div className="mt-8 border-l border-ink/40">
+        {experience.map((e) => {
+          const isOpen = open === e.company;
+          return (
+            <div key={e.company} className="relative pb-2 pl-8 md:pl-10">
+              <span
+                aria-hidden="true"
+                className={`absolute -left-[7px] top-2 h-3.5 w-3.5 rounded-full border-2 ${
+                  isOpen
+                    ? "border-flame bg-flame"
+                    : "border-ink/50 bg-paper"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : e.company)}
+                aria-expanded={isOpen}
+                className="group block w-full text-left"
+              >
+                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                  <h3 className="font-display text-2xl font-semibold tracking-tight text-ink group-hover:text-flame-deep md:text-[1.7rem]">
+                    {e.company}
+                  </h3>
+                  <span
+                    aria-hidden="true"
+                    className="font-mono text-sm text-faint transition-transform"
+                    style={{
+                      transform: isOpen ? "rotate(45deg)" : "none",
+                      display: "inline-block",
+                    }}
+                  >
+                    +
+                  </span>
+                </div>
+                <p className="tnum mt-1 font-mono text-xs uppercase tracking-[0.14em] text-smoke">
+                  {e.role} · {e.dates} · {e.location}
+                </p>
+              </button>
+              {isOpen && (
+                <motion.ul
+                  initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-4 max-w-3xl space-y-2.5 overflow-hidden"
                 >
-                  {b}
-                </li>
-              ))}
-            </ul>
-          </article>
-        ))}
-        <div className="border-t border-rule" />
+                  {e.bullets.map((b, i) => (
+                    <li
+                      key={i}
+                      className="border-l-2 border-rule pl-4 text-[15px] leading-relaxed text-ink/90"
+                    >
+                      {b}
+                    </li>
+                  ))}
+                </motion.ul>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
