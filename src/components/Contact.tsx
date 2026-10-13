@@ -1,5 +1,6 @@
 import { profile } from "../data";
 import SectionHeader from "./SectionHeader";
+import MessageForm from "./MessageForm";
 
 export default function Contact() {
   return (
@@ -29,6 +30,7 @@ export default function Contact() {
           </a>
         </div>
       </div>
+      <MessageForm />
     </section>
   );
 }

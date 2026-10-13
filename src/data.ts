@@ -17,7 +17,7 @@ export const navLinks = [
 ];
 
 export const hero = {
-  eyebrow: "software engineer · java · spring boot · kafka",
+  eyebrow: "AI-native software engineer · Java · Spring Boot · Kafka · Kubernetes",
   name: "Jerin Jack",
   headline: "I find the hot frames.",
   sub: "The slow queries, the flaky deploys, the report that takes ten seconds. I cool them down.",

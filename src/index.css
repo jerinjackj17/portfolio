@@ -34,6 +34,8 @@
 
 html {
   scroll-behavior: smooth;
+  /* keep scrolled-to content clear of the sticky nav */
+  scroll-padding-top: 88px;
 }
 
 body {

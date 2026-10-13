@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import AccentSwitch from "./AccentSwitch";
 
 function VisitCounter() {
   const [count, setCount] = useState<number | null>(null);
@@ -33,7 +32,6 @@ export default function Footer() {
         <p>Set in Chakra Petch &amp; Inter. No dashboards were harmed.</p>
         <div className="flex items-center gap-5">
           <VisitCounter />
-          <AccentSwitch />
           <p className="tnum">© 2026 Jerin Jack</p>
         </div>
       </div>

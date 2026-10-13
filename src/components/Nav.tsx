@@ -21,9 +21,17 @@ export default function Nav() {
       <nav className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-4 md:px-8">
         <a
           href="#top"
-          className="font-display text-lg font-semibold tracking-tight text-ink"
+          aria-label="Jerin Jack, back to top"
+          className="flex shrink-0 items-center gap-2"
         >
-          Jerin&nbsp;Jack
+          <span className="font-display text-lg font-bold tracking-tight text-ink">
+            JJ
+          </span>
+          <span
+            aria-hidden="true"
+            className="inline-block h-2 w-2"
+            style={{ backgroundColor: "var(--accent)" }}
+          />
         </a>
         <div className="flex items-center gap-5 overflow-x-auto font-mono text-[11px] uppercase tracking-[0.16em] text-smoke">
           {navLinks.map((l) => (

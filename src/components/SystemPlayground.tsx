@@ -311,6 +311,100 @@ function VehicleMark({ kind }: { kind: VKind }) {
   return <BikeArt />;
 }
 
+/* ============ the hero car: the visitor's own request ============ */
+/* Accent body, a touch larger, dark outline. Renders a fading smoke  */
+/* trail from the exhaust so the eye can track the full route. This  */
+/* is presentation only; the flight timing logic is untouched.        */
+
+function HeroCarArt() {
+  return (
+    <g
+      stroke="#1A1815"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="var(--accent)"
+      transform="scale(1.3)"
+    >
+      <path d="M-11 3 L-11 -2 L-5 -2 L-2 -6 L6 -6 L9 -2 L11 -2 L11 3 Z" />
+      <circle cx={-5.5} cy={4.5} r={2.1} fill="#FBF8F1" stroke="none" />
+      <circle cx={5.5} cy={4.5} r={2.1} fill="#FBF8F1" stroke="none" />
+    </g>
+  );
+}
+
+interface Puff {
+  id: number;
+  x: number;
+  y: number;
+  born: number;
+}
+
+const PUFF_LIFE = 1300;
+
+function FlightVehicle({
+  x,
+  y,
+  ang,
+  reduceMotion,
+}: {
+  x: number;
+  y: number;
+  ang: number;
+  reduceMotion: boolean | null;
+}) {
+  const trail = useRef<Puff[]>([]);
+  const idRef = useRef(0);
+  const last = useRef<{ x: number; y: number } | null>(null);
+
+  const rad = (ang * Math.PI) / 180;
+  const ex = x - 17 * Math.cos(rad);
+  const ey = y - 17 * Math.sin(rad);
+
+  // Sample the exhaust after each render (the parent tick re-renders
+  // ~7x/sec while the sim runs). Presentation only.
+  useEffect(() => {
+    if (reduceMotion) return;
+    const l = last.current;
+    if (!l || Math.hypot(ex - l.x, ey - l.y) > 12) {
+      idRef.current += 1;
+      const now = Date.now();
+      trail.current = [
+        ...trail.current.filter((p) => now - p.born < PUFF_LIFE),
+        { id: idRef.current, x: ex, y: ey, born: now },
+      ];
+      last.current = { x: ex, y: ey };
+    }
+  });
+
+  const now = Date.now();
+  const puffs = trail.current.filter((p) => now - p.born < PUFF_LIFE);
+
+  return (
+    <g>
+      {!reduceMotion &&
+        puffs.map((p) => {
+          const age = (now - p.born) / PUFF_LIFE;
+          return (
+            <circle
+              key={p.id}
+              cx={p.x.toFixed(1)}
+              cy={p.y.toFixed(1)}
+              r={(2 + age * 5).toFixed(1)}
+              fill="#1A1815"
+              opacity={(0.22 * (1 - age)).toFixed(2)}
+            />
+          );
+        })}
+      <g
+        transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${ang.toFixed(1)})`}
+      >
+        <HeroCarArt />
+      </g>
+    </g>
+  );
+}
+
 function SysNode({
   geom,
   sim,
@@ -434,14 +528,33 @@ export default function SystemPlayground() {
   const samplesRef = useRef<Record<string, Pt[]>>({});
   const lengthsRef = useRef<Record<string, number>>({});
   const flightTimerRef = useRef<number | null>(null);
+  const responseRef = useRef<HTMLDivElement>(null);
+  const lastSeenResponse = useRef<string | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
+  const flashTimer = useRef<number | null>(null);
 
-  // clear any pending response timer on unmount
+  // clear any pending timers on unmount
   useEffect(() => {
     return () => {
       if (flightTimerRef.current != null)
         window.clearTimeout(flightTimerRef.current);
+      if (flashTimer.current != null) window.clearTimeout(flashTimer.current);
     };
   }, []);
+
+  // After a response lands, bring it into view when it is below the fold,
+  // so it never looks like nothing happened. Skipped under reduced motion.
+  useEffect(() => {
+    const key = sim.response ? String(sim.response.key) : null;
+    if (!key || key === lastSeenResponse.current) return;
+    lastSeenResponse.current = key;
+    if (reduceMotion) return;
+    const el = responseRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const visible = r.top >= 0 && r.bottom <= window.innerHeight;
+    if (!visible) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [sim.response, reduceMotion]);
 
   useEffect(() => {
     const samples: Record<string, Pt[]> = {};
@@ -659,6 +772,16 @@ export default function SystemPlayground() {
     );
   };
 
+  // Auto-traffic toggle with a brief status flash so the effect is
+  // unmistakable: the status line announces the new state, then fades back.
+  const toggleAuto = () => {
+    const next = !sim.auto;
+    setSim((s) => ({ ...s, auto: next }));
+    setFlash(next ? "auto traffic on · roads live" : "auto traffic off · roads quiet");
+    if (flashTimer.current != null) window.clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => setFlash(null), 2600);
+  };
+
   const setScenario = (sc: Scenario) =>
     setSim((s) => {
       if (sc === s.scenario) return s;
@@ -708,7 +831,7 @@ export default function SystemPlayground() {
   const flightPos = sim.flight ? locate(sim.flight.pts, sim.flight.cum, sim.flight.dist) : null;
 
   return (
-    <figure>
+    <figure className="scroll-mt-24">
       <p className="mb-1 font-mono text-xs text-smoke">
         the system, live. compose a request and send it.
       </p>
@@ -757,11 +880,16 @@ export default function SystemPlayground() {
           </button>
           <button
             type="button"
-            onClick={() => setSim((s) => ({ ...s, auto: !s.auto }))}
+            onClick={toggleAuto}
             className="u-link font-mono text-[11px] uppercase tracking-[0.16em] text-smoke"
           >
             auto traffic: {sim.auto ? "on" : "off"}
           </button>
+          {sim.flight && (
+            <span className="tnum font-mono text-[11px] uppercase tracking-[0.16em] text-flame-deep">
+              request on the road…
+            </span>
+          )}
         </div>
 
         <div className="mt-5 border-t border-rule pt-4">
@@ -802,7 +930,7 @@ export default function SystemPlayground() {
                 sim.scenario !== "healthy" ? "text-flame-deep" : "text-ink"
               }
             >
-              {statusText()}
+              {flash ?? statusText()}
             </span>
           </p>
           <p className="tnum text-faint">
@@ -870,13 +998,14 @@ export default function SystemPlayground() {
                 </g>
               );
             })}
-            {/* the composed request */}
+            {/* the composed request: the hero car, with a smoke trail */}
             {sim.flight && flightPos && (
-              <g
-                transform={`translate(${flightPos.x.toFixed(1)} ${flightPos.y.toFixed(1)}) rotate(${flightPos.ang.toFixed(1)})`}
-              >
-                <VehicleMark kind={sim.flight.kind} />
-              </g>
+              <FlightVehicle
+                x={flightPos.x}
+                y={flightPos.y}
+                ang={flightPos.ang}
+                reduceMotion={reduceMotion}
+              />
             )}
             {GEOM.map((g) => (
               <SysNode
@@ -895,7 +1024,7 @@ export default function SystemPlayground() {
       </p>
 
       {/* response card */}
-      <div className="mt-5 min-h-[132px] border-y border-ink/70 py-5">
+      <div ref={responseRef} className="mt-5 min-h-[132px] scroll-mt-24 border-y border-ink/70 py-5">
         {sim.response ? (
           <motion.div
             key={sim.response.key}

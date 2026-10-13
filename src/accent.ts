@@ -1,7 +1,6 @@
 /* Single source of truth for the visitor accent theme.
-   Both AccentSwitch instances (nav + footer) subscribe here, so their
-   pressed indicators always agree. Persists to localStorage ("jj-accent")
-   and syncs across tabs via the storage event. */
+   AccentSwitch (nav only) reads and writes here. Persists to
+   localStorage ("jj-accent") and syncs across tabs via the storage event. */
 
 export interface Accent {
   id: string;
