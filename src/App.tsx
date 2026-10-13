@@ -6,6 +6,7 @@ import FlameGraph from "./components/FlameGraph";
 import About from "./components/About";
 import Experience from "./components/Experience";
 import Projects from "./components/Projects";
+import AiLab from "./components/AiLab";
 import AiPlayground from "./components/AiPlayground";
 import Skills from "./components/Skills";
 import Education from "./components/Education";
@@ -29,6 +30,7 @@ export default function App() {
         <About />
         <Experience />
         <Projects />
+        <AiLab />
         <AiPlayground />
         <Skills />
         <Education />
