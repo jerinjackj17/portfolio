@@ -9,6 +9,25 @@
       content="Jerin Jack · Software Engineer. I find the hot frames: Java, Spring Boot, Kafka, and databases tuned until they behave."
     />
     <title>Jerin Jack portfolio</title>
+    <script>
+      /* Apply the saved theme before first paint: no flash of the wrong one. */
+      (function () {
+        try {
+          var t = window.localStorage.getItem("jj-theme");
+          if (t !== "dark" && t !== "light") {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          }
+          if (t === "dark") {
+            document.documentElement.classList.add("dark");
+            document.documentElement.style.backgroundColor = "#171410";
+          }
+        } catch (e) {
+          /* no storage, no problem: light theme */
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

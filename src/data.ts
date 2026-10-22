@@ -11,6 +11,7 @@ export const navLinks = [
   { label: "About", href: "#about" },
   { label: "Experience", href: "#experience" },
   { label: "Projects", href: "#projects" },
+  { label: "AI Lab", href: "#ai-lab" },
   { label: "Ask", href: "#ask" },
   { label: "Skills", href: "#skills" },
   { label: "Contact", href: "#contact" },
@@ -282,30 +283,30 @@ export interface Project {
 export const projects: Project[] = [
   {
     index: "01",
-    title: "AI Powered Document Processing Platform",
+    title: "Payment APIs at a regulated bank, cut ~50% at peak",
     description: [
-      "Built a Spring Boot service automating invoice, ID, and contract processing with AI-based text extraction and NLP classification models.",
-      "Kafka-based asynchronous job queuing with results stored in MongoDB and Oracle by document type. REST APIs for upload, status tracking, and result retrieval, with unit and integration tests and SonarQube quality gates.",
+      "Core backend services for Gulf International Bank: balance transfers, international payments, account lookups, reconciliation. The payment APIs crawled at peak time, so I tuned the Oracle and PL/SQL queries, fixed the indexing, tightened transaction management, and put Redis caching in front of the hottest reads. Peak-time response times dropped by nearly half.",
+      "Around that core: Apache Spark batch jobs and ETL pipelines for nightly reconciliation feeding Tableau dashboards, partner integrations through WSO2 API Manager, and OAuth2 plus JWT on service-to-service calls. Regulated bank, so none of it shipped without audit trails.",
     ],
-    stack: "Spring Boot · Kafka · MongoDB · Oracle · NLP",
+    stack: "Java · Spring Boot · Oracle / PL/SQL · Redis · Spark · Kafka / JMS",
   },
   {
     index: "02",
-    title: "Vehicle Reservation Microservice",
+    title: "12+ production endpoints, zero defects in a year",
     description: [
-      "Developed an end-to-end vehicle reservation platform with a Java and Spring Boot backend and Angular 8 front end for search, booking, and an admin dashboard.",
-      "Integrated GIS-based location mapping and Azure IoT Hub and Event Hub telemetry for live booking updates. Secured with JWT authentication and role-based access control; deployed with Docker and Kubernetes through Jenkins CI/CD.",
+      "The content and analytics platform at AVPS Technologies. I designed and built 12+ production REST endpoints as Java 8/17 Spring Boot microservices, controller to service to repository, with reusable DTOs. High-traffic endpoints got 25% faster after I fixed a Hibernate mapping issue, added missing indexes, and optimized SQL across Oracle and PostgreSQL.",
+      "Audit events and workflow notifications run asynchronously on Kafka and JMS instead of synchronous calls, so services fail independently instead of together. Services ship as Docker containers to AWS ECS through Jenkins and GitHub Actions. I mentor two junior developers on the team.",
     ],
-    stack: "Spring Boot · Angular 8 · Azure IoT Hub · JWT · Kubernetes",
+    stack: "Java 17 · Spring Boot · Kafka · PostgreSQL · Docker · AWS ECS",
   },
   {
     index: "03",
-    title: "Real Time Analytics and ETL Reporting Pipeline",
+    title: "The reporting query that went from seconds to under one",
     description: [
-      "Built a Kafka and Apache Spark streaming pipeline into Oracle reporting tables for real-time business reporting.",
-      "Developed ETL jobs to clean, transform, and load multi-source data, publishing operational dashboards in Tableau.",
+      "At the Chicago Education Advocacy Cooperative, one recurring report took several seconds and everyone just lived with it. I rewrote the inefficient join, added targeted indexes, and designed normalized PostgreSQL schemas for the analytics workload. The same report now finishes in under a second.",
+      "Also in this role: Kafka-based asynchronous processing for audit events and workflow updates, OpenAPI documentation for cross-team integration, and the test discipline to back it up: JUnit, Mockito, and SonarQube coverage raised ahead of releases.",
     ],
-    stack: "Kafka · Apache Spark · Oracle · Tableau",
+    stack: "Java 17 · Spring Boot · PostgreSQL · Kafka · JUnit · SonarQube",
   },
 ];
 
@@ -667,37 +668,3 @@ export const about = {
   ],
 };
 
-/* ------------------------------------------------------------------ */
-/* AI playground: three short career docs for the simulated RAG toy.  */
-/* Fresh copy, facts from the master brief §1 only.                    */
-/* ------------------------------------------------------------------ */
-
-export interface RagDoc {
-  id: string;
-  title: string;
-  text: string;
-}
-
-export const ragDocs: RagDoc[] = [
-  {
-    id: "payments",
-    title: "the payment speedup",
-    text: "At Gulf International Bank, working through TCS, I tuned the payment APIs that slowed down at peak time. Oracle and PL/SQL query tuning, better indexes, tighter transactions, and Redis caching in front of the hottest reads cut peak-time response times by nearly 50%.",
-  },
-  {
-    id: "reporting",
-    title: "the ten-second report",
-    text: "At the Chicago Education Advocacy Cooperative, a recurring reporting query took several seconds against the PostgreSQL database. I rewrote the inefficient join, added targeted indexes, and normalized the schema. The same report now finishes in under a second.",
-  },
-  {
-    id: "kafka",
-    title: "going async",
-    text: "At AVPS Technologies, I replaced synchronous service calls with Kafka event flows for audit events and workflow notifications. Less coupling between services, better fault isolation. I mentored two junior developers and kept zero production defects over the past year.",
-  },
-];
-
-export const ragSuggestions = [
-  "where did Jerin cut payment latency?",
-  "what database did the reporting fix use?",
-  "where did he use Kafka?",
-];

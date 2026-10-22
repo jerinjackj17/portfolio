@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { navLinks, profile } from "../data";
 import AccentSwitch from "./AccentSwitch";
+import ThemeSwitch from "./ThemeSwitch";
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
@@ -48,7 +49,8 @@ export default function Nav() {
             Resume&nbsp;→
           </a>
         </div>
-        <div className="hidden shrink-0 items-center border-l border-rule pl-5 sm:flex">
+        <div className="hidden shrink-0 items-center gap-5 border-l border-rule pl-5 sm:flex">
+          <ThemeSwitch />
           <AccentSwitch />
         </div>
       </nav>

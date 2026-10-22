@@ -329,7 +329,7 @@ export default function FlameGraph() {
       {/* floating tooltip */}
       {tip && (
         <div
-          className="pointer-events-none fixed z-50 w-60 border border-ink/80 bg-paper px-3 py-2 shadow-[4px_4px_0_0_rgba(26,24,21,0.12)]"
+          className="fg-tip pointer-events-none fixed z-50 w-60 border border-ink/80 bg-paper px-3 py-2"
           style={{
             left: tip.x,
             top: tip.y,
