@@ -26,10 +26,27 @@
   --color-ok: #2e7d32;
   --color-warn: #c77414;
 
+
   /* display type behind one variable so the face can be swapped trivially */
   --font-display: "Chakra Petch", "Arial Narrow", sans-serif;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+
+/* Dark theme: same warm paper, after hours. The .dark class sits on
+   <html> (set by src/theme.ts and the pre-paint script in index.html).
+   Every utility resolves through these variables, so overriding them
+   recolors the whole site, playground and flame graph included. */
+.dark {
+  color-scheme: dark;
+  --color-paper: #171410;
+  --color-ink: #f0e9da;
+  --color-smoke: #a79c8a;
+  --color-faint: #7d7462;
+  --color-rule: #2e2a23;
+  --color-cool-1: #1f1b15;
+  --color-cool-2: #2a2115;
+  --color-warm-1: #57331c;
 }
 
 html {
@@ -113,4 +130,18 @@ body {
 }
 .fg-frame-hot {
   box-shadow: inset 0 0 0 1px rgba(26, 24, 21, 0.45);
+}
+.dark .fg-frame {
+  box-shadow: inset 0 0 0 1px rgba(240, 233, 218, 0.3);
+}
+.dark .fg-frame-hot {
+  box-shadow: inset 0 0 0 1px rgba(240, 233, 218, 0.45);
+}
+
+/* Flame graph hover tooltip: hard offset shadow, theme-aware */
+.fg-tip {
+  box-shadow: 4px 4px 0 0 rgba(26, 24, 21, 0.12);
+}
+.dark .fg-tip {
+  box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.55);
 }

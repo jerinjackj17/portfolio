@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { systemNodes } from "../data";
+import { getThemeMode, subscribeTheme, type ThemeMode } from "../theme";
 
 /* ================= geometry: big, airy, clear zones ================= */
 
@@ -85,7 +86,27 @@ const ZONES: [string, number][] = [
 ];
 
 const ISO_D = 7;
-const HEAT_HEX = ["#FBF8F1", "#F6EFE2", "#F2C29B", "var(--accent)"];
+/* SVG art needs literal colors; they follow the site theme (src/theme.ts). */
+const PALETTES = {
+  light: {
+    INK: "#1A1815",
+    PAPER: "#FBF8F1",
+    FAINT: "#A39A8D",
+    HEAT: ["#FBF8F1", "#F6EFE2", "#F2C29B", "var(--accent)"],
+  },
+  dark: {
+    INK: "#F0E9DA",
+    PAPER: "#171410",
+    FAINT: "#7D7462",
+    HEAT: ["#171410", "#2A2115", "#8A4B24", "var(--accent)"],
+  },
+} as const;
+
+function usePalette() {
+  const [mode, setMode] = useState<ThemeMode>(() => getThemeMode());
+  useEffect(() => subscribeTheme(setMode), []);
+  return PALETTES[mode];
+}
 
 /* ================= request composer ================= */
 
@@ -486,28 +507,30 @@ function stepTrip(
 /* ================= line-art vehicles ================= */
 
 function CarArt({ solid }: { solid?: boolean }) {
+  const { INK, PAPER } = usePalette();
   return (
     <g
-      stroke="#1A1815"
+      stroke={INK}
       strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
-      fill={solid ? "#1A1815" : "#FBF8F1"}
+      fill={solid ? INK : PAPER}
     >
       <path d="M-11 3 L-11 -2 L-6 -2 L-4 -6 L2 -6 L6 -2 L11 -2 L11 3 Z" />
       {/* windshield, then the headlight: the front is +x, always */}
       <path d="M2 -6 L6 -2" strokeWidth={1.25} />
-      <circle cx={9.2} cy={0.2} r={1.4} fill="#FBF8F1" strokeWidth={1} />
-      <circle cx={-5.5} cy={4.5} r={2.1} fill={solid ? "#FBF8F1" : "#1A1815"} stroke="none" />
-      <circle cx={5.5} cy={4.5} r={2.1} fill={solid ? "#FBF8F1" : "#1A1815"} stroke="none" />
+      <circle cx={9.2} cy={0.2} r={1.4} fill={PAPER} strokeWidth={1} />
+      <circle cx={-5.5} cy={4.5} r={2.1} fill={solid ? PAPER : INK} stroke="none" />
+      <circle cx={5.5} cy={4.5} r={2.1} fill={solid ? PAPER : INK} stroke="none" />
     </g>
   );
 }
 
 function BikeArt({ solid }: { solid?: boolean }) {
+  const { INK } = usePalette();
   return (
     <g
-      stroke={solid ? "var(--accent)" : "#1A1815"}
+      stroke={solid ? "var(--accent)" : INK}
       strokeWidth={1.5}
       strokeLinecap="round"
       fill="none"
@@ -536,9 +559,10 @@ function VehicleMark({ kind }: { kind: VKind }) {
 const RETURN_GREEN = "#2e7d32";
 
 function HeroCarArt({ tone }: { tone: "out" | "back" }) {
+  const { INK, PAPER } = usePalette();
   return (
     <g
-      stroke="#1A1815"
+      stroke={INK}
       strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -547,9 +571,9 @@ function HeroCarArt({ tone }: { tone: "out" | "back" }) {
     >
       <path d="M-11 3 L-11 -2 L-6 -2 L-4 -6 L2 -6 L6 -2 L11 -2 L11 3 Z" />
       <path d="M2 -6 L6 -2" strokeWidth={1.25} />
-      <circle cx={9.2} cy={0.2} r={1.4} fill="#FBF8F1" strokeWidth={1} />
-      <circle cx={-5.5} cy={4.5} r={2.1} fill="#FBF8F1" stroke="none" />
-      <circle cx={5.5} cy={4.5} r={2.1} fill="#FBF8F1" stroke="none" />
+      <circle cx={9.2} cy={0.2} r={1.4} fill={PAPER} strokeWidth={1} />
+      <circle cx={-5.5} cy={4.5} r={2.1} fill={PAPER} stroke="none" />
+      <circle cx={5.5} cy={4.5} r={2.1} fill={PAPER} stroke="none" />
     </g>
   );
 }
@@ -662,10 +686,11 @@ function SysNode({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const { INK, PAPER, HEAT } = usePalette();
   const node = systemNodes.find((n) => n.id === geom.id);
   if (!node) return null;
-  const fill = HEAT_HEX[sim.heat];
-  const ink = sim.heat === 3 ? "#FBF8F1" : "#1A1815";
+  const fill = HEAT[sim.heat];
+  const ink = sim.heat === 3 ? "#FBF8F1" : INK;
   const cx = geom.x + geom.w / 2;
   const readout =
     node.baseP50 === 0
@@ -687,8 +712,8 @@ function SysNode({
     >
       <polygon
         points={`${geom.x + ISO_D},${geom.y - ISO_D} ${geom.x + geom.w + ISO_D},${geom.y - ISO_D} ${geom.x + geom.w},${geom.y} ${geom.x},${geom.y}`}
-        fill="#FBF8F1"
-        stroke="#1A1815"
+        fill={PAPER}
+        stroke={INK}
         strokeWidth={1.25}
       />
       <rect
@@ -697,7 +722,7 @@ function SysNode({
         width={geom.w}
         height={geom.h}
         fill={fill}
-        stroke="#1A1815"
+        stroke={INK}
         strokeWidth={1.5}
       />
       {selected && (
@@ -765,6 +790,7 @@ function CtlButton({
 /* ================= the playground ================= */
 
 export default function SystemPlayground() {
+  const { INK, FAINT } = usePalette();
   const reduceMotion = useReducedMotion();
   const [sim, setSim] = useState<Sim>(initSim);
   const [method, setMethod] = useState<Method>("GET");
@@ -1156,7 +1182,7 @@ export default function SystemPlayground() {
                 y={34}
                 textAnchor="middle"
                 fontSize={11}
-                fill="#A39A8D"
+                fill={FAINT}
                 className="font-mono"
                 style={{ letterSpacing: "0.2em" }}
               >
@@ -1171,7 +1197,7 @@ export default function SystemPlayground() {
                 width={210}
                 height={912}
                 fill="none"
-                stroke="#1A1815"
+                stroke={INK}
                 strokeWidth={1.25}
                 strokeDasharray="8 6"
                 opacity={0.35}
@@ -1183,7 +1209,7 @@ export default function SystemPlayground() {
               y={948}
               textAnchor="middle"
               fontSize={11}
-              fill="#A39A8D"
+              fill={FAINT}
               className="font-mono"
               style={{ letterSpacing: "0.2em" }}
               aria-hidden="true"
@@ -1195,7 +1221,7 @@ export default function SystemPlayground() {
               y={948}
               textAnchor="middle"
               fontSize={11}
-              fill="#A39A8D"
+              fill={FAINT}
               className="font-mono"
               style={{ letterSpacing: "0.2em" }}
               aria-hidden="true"
@@ -1208,7 +1234,7 @@ export default function SystemPlayground() {
                 ref={registerRoad(r.id)}
                 d={r.d}
                 fill="none"
-                stroke="#1A1815"
+                stroke={INK}
                 strokeWidth={1.5}
                 strokeLinecap="round"
                 strokeDasharray={r.ambient ? "6 5" : undefined}

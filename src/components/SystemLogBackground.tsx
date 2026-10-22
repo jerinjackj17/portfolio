@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useReducedMotion } from "framer-motion";
+import { getThemeMode, subscribeTheme } from "../theme";
 
 /* Abstract living background: a faint network-topology world drawn on a
    single canvas. The world is ~3x the viewport height; scrolling pans
@@ -55,7 +56,10 @@ function mulberry(seed: number) {
   };
 }
 
-const INK = "26,24,21"; // --color-ink
+const INK_RGB = {
+  light: "26,24,21", // --color-ink
+  dark: "240,233,218",
+} as const;
 const AMBER = "150,92,24";
 const RED = "178,58,32";
 const GREEN = "46,125,50";
@@ -388,6 +392,10 @@ export default function SystemLogBackground() {
     const cursor = { x: -9999, y: -9999, t: -9999 }; // world coords
     const modeRef: { mode: Mode } = { mode: "calm" };
     let pulseStart = -1; // seconds; green sweep on recovery
+    let ink: string = INK_RGB[getThemeMode()];
+    const unsubInk = subscribeTheme((m) => {
+      ink = INK_RGB[m];
+    });
     let accent = "#e8491d";
     let frame = 0;
     let camY = 0; // eased camera
@@ -564,7 +572,7 @@ export default function SystemLogBackground() {
           const b = nodes[j];
           const f = Math.min(edgeFade(a.y), edgeFade(b.y));
           if (f <= 0) continue;
-          ctx!.strokeStyle = `rgba(${INK},${(0.13 * f).toFixed(3)})`;
+          ctx!.strokeStyle = `rgba(${ink},${(0.13 * f).toFixed(3)})`;
           ctx!.beginPath();
           ctx!.moveTo(a.x, a.y);
           ctx!.lineTo(b.x, b.y);
@@ -580,7 +588,7 @@ export default function SystemLogBackground() {
         if (f <= 0) continue;
         // every node: faint ring + icon, no labels
         const ringColor =
-          sick && DATA_HUBS.has(n.hub!) ? `rgba(${RED},${(0.4 * f).toFixed(3)})` : `rgba(${INK},${(0.18 * f).toFixed(3)})`;
+          sick && DATA_HUBS.has(n.hub!) ? `rgba(${RED},${(0.4 * f).toFixed(3)})` : `rgba(${ink},${(0.18 * f).toFixed(3)})`;
         ctx!.beginPath();
         ctx!.arc(n.x, n.y, 8, 0, Math.PI * 2);
         ctx!.strokeStyle = ringColor;
@@ -592,7 +600,7 @@ export default function SystemLogBackground() {
           n.x,
           n.y,
           6.5,
-          `rgba(${INK},${(0.32 * f).toFixed(3)})`,
+          `rgba(${ink},${(0.32 * f).toFixed(3)})`,
         );
       }
     }
@@ -676,7 +684,7 @@ export default function SystemLogBackground() {
 
         const px = x + p.ox;
         const py = y + p.oy;
-        let color: string = INK;
+        let color: string = ink;
         if (modeRef.mode === "slow-db" && p.warn) color = p.accent ? RED : AMBER;
         const alpha = Math.min(1, 0.32 + p.bright * 0.45) * f;
         ctx!.beginPath();
@@ -711,7 +719,7 @@ export default function SystemLogBackground() {
         if (f <= 0) continue;
         ctx!.beginPath();
         ctx!.arc(x, y, 2, 0, Math.PI * 2);
-        ctx!.fillStyle = `rgba(${INK},${(0.3 * f).toFixed(3)})`;
+        ctx!.fillStyle = `rgba(${ink},${(0.3 * f).toFixed(3)})`;
         ctx!.fill();
       }
     }
@@ -780,6 +788,7 @@ export default function SystemLogBackground() {
     }
 
     return () => {
+      unsubInk();
       cancelAnimationFrame(raf);
       window.clearTimeout(resizeTimer);
       window.removeEventListener("pointermove", onPoint);

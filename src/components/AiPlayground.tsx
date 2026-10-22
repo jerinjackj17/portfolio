@@ -1,379 +1,256 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ragDocs, ragSuggestions } from "../data";
+import { analyzeJd, answerQuestion, type JdResult } from "../ask";
 import SectionHeader from "./SectionHeader";
 
-/* ---------- chunking ---------- */
-
-interface Chunk {
-  id: number;
-  docId: string;
-  docTitle: string;
+interface Msg {
+  role: "you" | "machine";
   text: string;
+  sources?: string[];
 }
 
-function sentencesOf(text: string): string[] {
-  const m = text.match(/[^.!?]+[.!?]+/g);
-  return (m ?? [text]).map((s) => s.trim()).filter(Boolean);
-}
+const SUGGESTIONS = [
+  "what is he best at?",
+  "tell me about the bank payment work",
+  "does he know Kafka?",
+  "what are his honest gaps?",
+  "how do I reach him?",
+];
 
-function chunkDocs(size: number, overlap: boolean): Chunk[] {
-  const chunks: Chunk[] = [];
-  let id = 1;
-  for (const doc of ragDocs) {
-    const sents = sentencesOf(doc.text);
-    const stride = overlap ? Math.max(1, size - 1) : size;
-    for (let i = 0; i < sents.length; i += stride) {
-      const piece = sents.slice(i, i + size).join(" ");
-      if (!piece) continue;
-      chunks.push({ id: id++, docId: doc.id, docTitle: doc.title, text: piece });
-      if (i + stride >= sents.length) break;
-    }
-  }
-  return chunks;
-}
-
-/* ---------- scoring: plain keyword overlap, honest and deterministic ---------- */
-
-const STOP = new Set(
-  "the a an is are was were be been in on at to for of and or with by he his him it its as from that this these those did does do what where when which who whom how why i me my we our you your they them their there here had has have not no yes if then than so such can could would should will just about into over after before".split(
-    " ",
-  ),
-);
-
-function tokens(s: string): string[] {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter((t) => t.length > 1 && !STOP.has(t))
-    .map((t) => (t.length > 3 && t.endsWith("s") ? t.slice(0, -1) : t));
-}
-
-function scoreChunk(query: string, text: string): number {
-  const q = tokens(query);
-  if (q.length === 0) return 0;
-  const c = new Set(tokens(text));
-  let hit = 0;
-  for (const t of q) if (c.has(t)) hit++;
-  return hit / q.length;
-}
-
-/* ---------- stages ---------- */
-
-const STAGES = [
-  { id: "chunk", label: "chunk", sub: "split the text into numbered pieces" },
-  { id: "embed", label: "embed", sub: "turn each piece into numbers" },
-  { id: "retrieve", label: "retrieve", sub: "find the pieces closest to your question" },
-  { id: "generate", label: "generate", sub: "write an answer from the best pieces" },
-] as const;
-
-type StageId = (typeof STAGES)[number]["id"] | "idle" | "done";
+const GREETING: Msg = {
+  role: "machine",
+  text: "Ask me anything about Jerin's work: experience, skills, the payment speedup at the bank, his AI projects. Or paste a job description into the fit checker and I will compare it against his profile, strengths and gaps both.",
+};
 
 export default function AiPlayground() {
   const reduceMotion = useReducedMotion();
-  const [size, setSize] = useState(2);
-  const [overlap, setOverlap] = useState(false);
-  const [query, setQuery] = useState("");
-  const [stage, setStage] = useState<StageId>("idle");
-  const [scores, setScores] = useState<Record<number, number>>({});
-  const [topIds, setTopIds] = useState<number[]>([]);
-  const [answer, setAnswer] = useState("");
-  const [answerDone, setAnswerDone] = useState(false);
-  const timers = useRef<number[]>([]);
+  const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
+  const [input, setInput] = useState("");
+  const [jd, setJd] = useState("");
+  const [jdResult, setJdResult] = useState<JdResult | null>(null);
+  const [jdError, setJdError] = useState("");
+  const logRef = useRef<HTMLDivElement>(null);
 
-  const chunks = useMemo(() => chunkDocs(size, overlap), [size, overlap]);
-
-  useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
   useEffect(() => {
-    timers.current.forEach((t) => {
-      window.clearTimeout(t);
-      window.clearInterval(t);
-    });
-    timers.current = [];
-    setScores({});
-    setTopIds([]);
-    setAnswer("");
-    setAnswerDone(false);
-    setStage("idle");
-  }, [size, overlap]);
-
-  const later = (ms: number, fn: () => void) => {
-    timers.current.push(window.setTimeout(fn, reduceMotion ? 0 : ms));
-  };
+    const el = logRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [msgs]);
 
   const ask = (q: string) => {
     const question = q.trim();
     if (!question) return;
-    timers.current.forEach((t) => window.clearTimeout(t));
-    timers.current = [];
-    setScores({});
-    setTopIds([]);
-    setAnswer("");
-    setAnswerDone(false);
-
-    setStage("chunk");
-    later(350, () => {
-      setStage("embed");
-      later(800, () => {
-        const scored = chunks.map((c) => ({
-          id: c.id,
-          s: Math.round(scoreChunk(question, c.text) * 100) / 100,
-        }));
-        const byScore = [...scored].sort((a, b) => b.s - a.s || a.id - b.id);
-        const top = byScore.filter((x) => x.s > 0).slice(0, 3);
-        const scoreMap: Record<number, number> = {};
-        scored.forEach((x) => (scoreMap[x.id] = x.s));
-        setScores(scoreMap);
-        setTopIds(top.map((x) => x.id));
-        setStage("retrieve");
-        later(900, () => {
-          setStage("generate");
-          const best = top[0] ? chunks.find((c) => c.id === top[0].id) : null;
-          if (!best) {
-            setAnswer(`I don't have anything on that in these docs. Try one of the suggested questions.`);
-            setAnswerDone(true);
-            setStage("done");
-            return;
-          }
-          let text = `"${best.text}" [${best.id}].`;
-          const second = top[1] && top[1].s >= 0.3 ? chunks.find((c) => c.id === top[1].id) : null;
-          if (second) text += ` Also: "${second.text}" [${second.id}].`;
-          if (reduceMotion) {
-            setAnswer(text);
-            setAnswerDone(true);
-            setStage("done");
-            return;
-          }
-          let i = 0;
-          const typeId = window.setInterval(() => {
-            i += 3;
-            setAnswer(text.slice(0, i));
-            if (i >= text.length) {
-              window.clearInterval(typeId);
-              setAnswerDone(true);
-              setStage("done");
-            }
-          }, 18);
-          timers.current.push(typeId);
-        });
-      });
-    });
+    const a = answerQuestion(question);
+    setMsgs((m) => [
+      ...m,
+      { role: "you", text: question },
+      { role: "machine", text: a.text, sources: a.sources },
+    ]);
+    setInput("");
   };
 
-  const stageIndex = (s: StageId) =>
-    s === "idle" ? -1 : s === "done" ? STAGES.length : STAGES.findIndex((x) => x.id === s);
+  const checkJd = () => {
+    const r = analyzeJd(jd);
+    if ("error" in r) {
+      setJdResult(null);
+      setJdError(r.error);
+    } else {
+      setJdError("");
+      setJdResult(r);
+    }
+  };
 
   return (
     <section
       id="ask"
       className="mx-auto max-w-5xl scroll-mt-24 px-5 pt-20 md:px-8 md:pt-28"
     >
-      <SectionHeader title="Ask the machine" />
+      <SectionHeader title="Ask about Jerin" />
       <p className="mt-4 font-mono text-xs text-faint">
-        a toy search over three short docs about my work. you run the pipeline.
+        questions about my work, answered from my resume. plus a fit checker
+        for job descriptions.
       </p>
 
-      {/* stages */}
-      <div className="mt-6 flex flex-wrap items-stretch gap-2">
-        {STAGES.map((st, i) => {
-          const lit = stageIndex(stage) >= i;
-          const running = stage === st.id;
-          return (
-            <div key={st.id} className="flex items-stretch gap-2">
-              {i > 0 && (
-                <span aria-hidden="true" className="self-center font-mono text-faint">
-                  →
-                </span>
-              )}
-              <div
-                className={`border px-3 py-2 ${
-                  running
-                    ? "border-flame bg-flame text-paper"
-                    : lit
-                      ? "border-flame-deep text-flame-deep"
-                      : "border-rule text-faint"
-                }`}
+      <div className="mt-8 grid gap-10 lg:grid-cols-[1.25fr_1fr] lg:gap-12">
+        {/* ---- chat ---- */}
+        <div>
+          <div
+            ref={logRef}
+            className="h-[380px] space-y-5 overflow-y-auto border-y border-ink/70 py-5 pr-2"
+            aria-live="polite"
+          >
+            {msgs.map((m, i) => (
+              <motion.div
+                key={i}
+                initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
               >
-                <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em]">
-                  {st.label}
-                </p>
                 <p
-                  className={`mt-0.5 font-mono text-[10px] ${
-                    running ? "text-paper/80" : "text-faint"
+                  className={`font-mono text-[11px] uppercase tracking-[0.18em] ${
+                    m.role === "you" ? "text-smoke" : "text-flame-deep"
                   }`}
                 >
-                  {st.sub}
+                  {m.role === "you" ? "you" : "the machine"}
                 </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-8 grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:gap-12">
-        {/* docs + chunks */}
-        <div>
-          <div className="flex flex-wrap items-center gap-5">
-            <div>
-              <label
-                htmlFor="ai-chunksize"
-                className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke"
-              >
-                sentences per chunk ·{" "}
-                <span className="tnum text-ink">{size}</span>
-              </label>
-              <input
-                id="ai-chunksize"
-                type="range"
-                min={1}
-                max={4}
-                step={1}
-                value={size}
-                onChange={(e) => setSize(Number(e.target.value))}
-                className="mt-2 block w-48 max-w-full accent-[var(--accent)]"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setOverlap((o) => !o)}
-              aria-pressed={overlap}
-              className="u-link mt-5 font-mono text-[11px] uppercase tracking-[0.16em] text-smoke"
-            >
-              overlap: {overlap ? "on" : "off"}
-            </button>
-          </div>
-
-          <div className="mt-5 space-y-6">
-            {ragDocs.map((doc) => (
-              <div key={doc.id}>
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke">
-                  {doc.title}
+                <p
+                  className={`mt-1.5 text-[15px] leading-relaxed ${
+                    m.role === "you" ? "text-ink/70" : "text-ink"
+                  }`}
+                >
+                  {m.text}
                 </p>
-                <div className="mt-2 space-y-2">
-                  {chunks
-                    .filter((c) => c.docId === doc.id)
-                    .map((c) => {
-                      const isTop = topIds.includes(c.id);
-                      const sc = scores[c.id];
-                      return (
-                        <div
-                          key={c.id}
-                          className={`border px-3 py-2.5 transition-colors ${
-                            isTop
-                              ? "border-flame-deep bg-warm-1/40"
-                              : stage === "embed"
-                                ? "border-flame-deep/50 bg-cool-1"
-                                : "border-rule"
-                          }`}
-                        >
-                          <div className="flex items-baseline justify-between gap-3">
-                            <span
-                              className={`font-mono text-[11px] ${
-                                isTop ? "text-flame-deep" : "text-faint"
-                              }`}
-                            >
-                              chunk #{c.id}
-                            </span>
-                            {sc !== undefined && (
-                              <span
-                                className={`tnum font-mono text-[11px] ${
-                                  isTop ? "font-medium text-flame-deep" : "text-faint"
-                                }`}
-                              >
-                                {sc.toFixed(2)}
-                              </span>
-                            )}
-                          </div>
-                          <p className="mt-1 text-[14px] leading-relaxed text-ink/90">
-                            {c.text}
-                          </p>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
+                {m.sources && m.sources.length > 0 && (
+                  <p className="mt-1.5 font-mono text-[11px] text-faint">
+                    from: {m.sources.join(" · ")}
+                  </p>
+                )}
+              </motion.div>
             ))}
           </div>
-        </div>
 
-        {/* query + answer */}
-        <div>
-          <label
-            htmlFor="ai-query"
-            className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke"
-          >
-            ask a question
-          </label>
-          <div className="mt-2 flex gap-2">
+          <div className="mt-4 flex gap-2">
             <input
-              id="ai-query"
               type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") ask(query);
+                if (e.key === "Enter") ask(input);
               }}
-              placeholder="e.g. where did he use Kafka?"
+              placeholder="e.g. does he know Kubernetes?"
+              aria-label="ask a question about Jerin"
               className="w-full border border-ink/70 bg-paper px-3 py-2.5 font-mono text-sm text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-flame"
             />
             <button
               type="button"
-              onClick={() => ask(query)}
+              onClick={() => ask(input)}
               className="shrink-0 border border-ink bg-ink px-5 font-mono text-xs font-medium uppercase tracking-[0.16em] text-paper hover:opacity-85"
             >
               ask
             </button>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {ragSuggestions.map((s) => (
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+            {SUGGESTIONS.map((s) => (
               <button
                 key={s}
                 type="button"
-                onClick={() => {
-                  setQuery(s);
-                  ask(s);
-                }}
+                onClick={() => ask(s)}
                 className="u-link text-left font-mono text-[11px] text-smoke"
               >
                 {s}
               </button>
             ))}
           </div>
+        </div>
 
-          <div className="mt-6 min-h-[120px] border-y border-ink/70 py-4">
-            {answer ? (
-              <motion.div
-                initial={reduceMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-flame-deep">
-                  answer
-                </p>
-                <p className="mt-2 text-[15px] leading-relaxed text-ink">
-                  {answer}
-                  {!answerDone && (
-                    <span aria-hidden="true" className="text-flame-deep">
-                      ▍
-                    </span>
-                  )}
-                </p>
-              </motion.div>
-            ) : (
-              <p className="font-mono text-sm text-faint">
-                {stage === "idle"
-                  ? "type a question or tap a suggestion. the pipeline runs live."
-                  : "working…"}
-              </p>
-            )}
-          </div>
-
-          <p className="mt-4 font-mono text-[11px] leading-relaxed text-faint">
-            a toy model of the real pipeline. simulated in your browser, no
-            vector DB, no LLM calls.
+        {/* ---- JD fit checker ---- */}
+        <div className="border border-ink/70 p-5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-flame-deep">
+            jd fit checker
           </p>
+          <p className="mt-2 text-[15px] leading-relaxed text-ink/90">
+            Paste a job description. You get a straight answer: is he suitable
+            for this role, where is he strong, and where are the gaps.
+          </p>
+          <textarea
+            value={jd}
+            onChange={(e) => setJd(e.target.value)}
+            rows={7}
+            placeholder="paste the job description here…"
+            aria-label="paste a job description"
+            className="mt-4 w-full resize-y border border-rule bg-paper px-3 py-2.5 font-mono text-[13px] leading-relaxed text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-flame"
+          />
+          <button
+            type="button"
+            onClick={checkJd}
+            className="mt-3 border border-ink bg-ink px-5 py-2.5 font-mono text-xs font-medium uppercase tracking-[0.16em] text-paper hover:opacity-85"
+          >
+            check fit
+          </button>
+
+          {jdError && (
+            <p className="mt-4 text-[14px] leading-relaxed text-warn">{jdError}</p>
+          )}
+
+          {jdResult && (
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mt-5 border-t border-rule pt-4"
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <h3 className="font-display text-xl font-semibold tracking-tight text-ink">
+                  {jdResult.verdict}
+                </h3>
+                <span className="tnum shrink-0 font-mono text-sm text-flame-deep">
+                  {jdResult.pct}%
+                </span>
+              </div>
+              <div
+                className="mt-3 h-2 w-full border border-ink/50"
+                role="img"
+                aria-label={`skill match ${jdResult.pct} percent`}
+              >
+                <div
+                  className="h-full bg-flame"
+                  style={{ width: `${jdResult.pct}%` }}
+                />
+              </div>
+              <p className="mt-2 font-mono text-[11px] text-faint">
+                matched against {jdResult.found} requirements found in the jd
+              </p>
+
+              {jdResult.strengths.length > 0 && (
+                <div className="mt-4">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke">
+                    strengths for this role
+                  </p>
+                  <ul className="mt-2 space-y-1.5 text-[14px] leading-relaxed text-ink/90">
+                    {jdResult.strengths.map((s) => (
+                      <li key={s.term}>
+                        <span className="font-medium text-ink">{s.term}</span>
+                        {" · "}
+                        {s.evidence}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {jdResult.gaps.length > 0 && (
+                <div className="mt-4">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke">
+                    honest gaps
+                  </p>
+                  <ul className="mt-2 space-y-1.5 text-[14px] leading-relaxed text-ink/90">
+                    {jdResult.gaps.map((g) => (
+                      <li key={g.term}>
+                        <span className="font-medium text-ink">{g.term}</span>
+                        {" · "}
+                        {g.note}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {jdResult.notes.map((n) => (
+                <p
+                  key={n}
+                  className="mt-3 text-[14px] leading-relaxed text-ink/90"
+                >
+                  {n}
+                </p>
+              ))}
+            </motion.div>
+          )}
         </div>
       </div>
+
+      <p className="mt-6 font-mono text-[11px] leading-relaxed text-faint">
+        runs entirely in your browser over a structured copy of my resume. no
+        llm, no server, and nothing you paste leaves this page.
+      </p>
     </section>
   );
 }
