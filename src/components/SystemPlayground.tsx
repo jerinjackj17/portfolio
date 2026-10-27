@@ -40,6 +40,22 @@ const GEOM: NodeGeom[] = [
   { id: "prometheus", x: 780, y: 970, w: 170, h: 72 },
   { id: "grafana", x: 990, y: 970, w: 170, h: 72 },
   { id: "jaeger", x: 1200, y: 970, w: 170, h: 72 },
+  // platform + partner + second async bus (free slots in existing columns)
+  { id: "wso2", x: 535, y: 70, w: 170, h: 72 },
+  { id: "jms", x: 1025, y: 870, w: 170, h: 72 },
+  // platform column (new, right of data)
+  { id: "oracle-db", x: 1515, y: 70, w: 170, h: 72 },
+  { id: "mongodb", x: 1515, y: 270, w: 170, h: 72 },
+  { id: "spark-etl", x: 1515, y: 470, w: 170, h: 72 },
+  { id: "tableau", x: 1515, y: 670, w: 170, h: 72 },
+  { id: "ecs", x: 1515, y: 870, w: 170, h: 72 },
+  // delivery band, alongside jenkins
+  { id: "github-actions", x: 45, y: 970, w: 170, h: 72 },
+  { id: "sonarqube", x: 535, y: 970, w: 170, h: 72 },
+  // ai lab band: standalone live demos, not part of the bank system
+  { id: "flowforge", x: 290, y: 1170, w: 170, h: 72 },
+  { id: "mcp-baremetal", x: 780, y: 1170, w: 170, h: 72 },
+  { id: "verifiable-rag", x: 1270, y: 1170, w: 170, h: 72 },
 ];
 
 interface Road {
@@ -73,16 +89,24 @@ const ROADS: Road[] = [
   { id: "r-rep-es", d: "M 950 506 H 1170 V 706 H 1270", from: "reports-svc", to: "elasticsearch", ambient: true },
   { id: "r-pay-s3", d: "M 950 306 H 1210 V 906 H 1270", from: "payments-svc", to: "object-storage", ambient: true },
   { id: "r-graf-prom", d: "M 990 1006 H 950", from: "grafana", to: "prometheus", ambient: true },
-  { id: "r-jenkins-ship", d: "M 460 1006 H 760 V 962", from: "jenkins", to: "payments-svc", ambient: true },
+  { id: "r-jenkins-ship", d: "M 460 1042 V 1090 H 760 V 962", from: "jenkins", to: "payments-svc", ambient: true },
+  { id: "r-wso2-gw", d: "M 620 142 V 270", from: "wso2", to: "api-gateway", ambient: true },
+  { id: "r-kafka-jms", d: "M 1195 306 H 1210 V 834 H 1110 V 870", from: "kafka", to: "jms", ambient: true },
+  { id: "r-pay-oracle", d: "M 950 306 H 1000 V 240 H 1490 V 106 H 1515", from: "payments-svc", to: "oracle-db", ambient: true },
+  { id: "r-kafka-spark", d: "M 1110 342 V 380 H 1490 V 506 H 1515", from: "kafka", to: "spark-etl", ambient: true },
+  { id: "r-spark-tableau", d: "M 1600 542 V 670", from: "spark-etl", to: "tableau", ambient: true },
+  { id: "r-jenkins-ecs", d: "M 375 1042 V 1110 H 1600 V 942", from: "jenkins", to: "ecs", ambient: true },
+  { id: "r-jenkins-sonar", d: "M 460 1006 H 535", from: "jenkins", to: "sonarqube", ambient: true },
 ];
 
 const ZONES: [string, number][] = [
   ["edge", 130],
   ["client", 375],
   ["gateway", 620],
-  ["kubernetes · eks", 865],
+  ["services", 865],
   ["streaming", 1110],
   ["data", 1355],
+  ["platform", 1600],
 ];
 
 const ISO_D = 7;
@@ -288,8 +312,8 @@ interface Sim {
   lastMs: number | null;
 }
 
-const DATA_NODES = ["postgres", "postgres-replica", "redis", "elasticsearch", "object-storage"];
-const SERVICE_NODES = ["auth-svc", "payments-svc", "reports-svc", "fraud-svc", "ledger-svc", "notify-svc"];
+const DATA_NODES = ["postgres", "postgres-replica", "redis", "elasticsearch", "object-storage", "oracle-db", "mongodb"];
+const SERVICE_NODES = ["auth-svc", "payments-svc", "reports-svc", "fraud-svc", "ledger-svc", "notify-svc", "wso2", "jms"];
 
 function initSim(): Sim {
   const nodes: Record<string, NodeSim> = {};
@@ -693,9 +717,11 @@ function SysNode({
   const ink = sim.heat === 3 ? "#FBF8F1" : INK;
   const cx = geom.x + geom.w / 2;
   const readout =
-    node.baseP50 === 0
-      ? `${fmtRpm(sim.rpm)} req/min`
-      : `${fmtRpm(sim.rpm)} req/min · avg ${Math.round(sim.avg)}ms`;
+    node.link
+      ? "live demo"
+      : node.baseP50 === 0
+        ? `${fmtRpm(sim.rpm)} req/min`
+        : `${fmtRpm(sim.rpm)} req/min · avg ${Math.round(sim.avg)}ms`;
   return (
     <g
       role="button"
@@ -1170,7 +1196,7 @@ export default function SystemPlayground() {
       <div className="mt-3 overflow-x-auto pb-1">
         <div className="relative min-w-[900px]">
           <svg
-            viewBox="0 0 1560 1080"
+            viewBox="0 0 1760 1300"
             className="block w-full"
             role="img"
             aria-label="Interactive system diagram. Compose a request above and watch it travel."
@@ -1189,7 +1215,7 @@ export default function SystemPlayground() {
                 {label.toUpperCase()}
               </text>
             ))}
-            {/* kubernetes boundary around the services column */}
+            {/* services boundary around the services column */}
             <g aria-hidden="true">
               <rect
                 x={760}
@@ -1227,6 +1253,18 @@ export default function SystemPlayground() {
               aria-hidden="true"
             >
               OBSERVABILITY
+            </text>
+            <text
+              x={865}
+              y={1148}
+              textAnchor="middle"
+              fontSize={11}
+              fill={FAINT}
+              className="font-mono"
+              style={{ letterSpacing: "0.2em" }}
+              aria-hidden="true"
+            >
+              AI LAB · LIVE DEMOS
             </text>
             {ROADS.map((r) => (
               <path
@@ -1321,6 +1359,7 @@ export default function SystemPlayground() {
           />
           return
         </span>
+        <span>ai lab nodes link out to their live demos.</span>
       </p>
 
       {/* response card */}
@@ -1403,6 +1442,18 @@ export default function SystemPlayground() {
                 </li>
               ))}
             </ul>
+            {selectedNode.link && (
+              <p className="mt-3">
+                <a
+                  href={selectedNode.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="u-link font-mono text-xs uppercase tracking-[0.16em] text-flame-deep"
+                >
+                  {selectedNode.linkLabel ?? "open live demo"} →
+                </a>
+              </p>
+            )}
           </motion.div>
         ) : (
           <p className="font-mono text-sm text-faint">
