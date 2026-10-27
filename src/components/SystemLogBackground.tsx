@@ -427,7 +427,6 @@ export default function SystemLogBackground() {
       nodes = [];
       for (let cy = 0; cy < rows; cy++) {
         for (let cx = 0; cx < cols; cx++) {
-          if (nodes.length >= cap) break;
           nodes.push({
             x: ((cx + 0.5 + (rnd() - 0.5) * 0.7) / cols) * W,
             y: ((cy + 0.5 + (rnd() - 0.5) * 0.7) / rows) * worldH,
@@ -436,6 +435,13 @@ export default function SystemLogBackground() {
             hub: null,
           });
         }
+      }
+      // Stride-sample when the grid outgrows the cap, so nodes still span
+      // the full world height. The old early break filled only the top rows
+      // on wide screens, which is why the network vanished near the footer.
+      if (nodes.length > cap) {
+        const stride = Math.ceil(nodes.length / cap);
+        nodes = nodes.filter((_, i) => i % stride === 0);
       }
       // connect each node to its 2 nearest neighbors
       adj = nodes.map(() => []);

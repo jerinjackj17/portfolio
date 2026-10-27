@@ -406,6 +406,9 @@ export interface SystemNode {
   /** illustrative base traffic for the simulation */
   baseRpm: number;
   baseP50: number;
+  /** live link shown in the node detail panel, for the AI demo nodes */
+  link?: string;
+  linkLabel?: string;
 }
 
 export const systemNodes: SystemNode[] = [
@@ -648,10 +651,160 @@ export const systemNodes: SystemNode[] = [
     story: "Every merge becomes a deploy.",
     details: [
       "Builds, tests and packages each service into a docker image.",
-      "Pushes images and rolls them out to kubernetes.",
+      "Pushes images and rolls them out to AWS ECS.",
     ],
     baseRpm: 12,
     baseP50: 0,
+  },
+  {
+    id: "wso2",
+    label: "wso2",
+    role: "api manager · partner integrations.",
+    story: "The front door for partners.",
+    details: [
+      "Partner integrations run through WSO2 API Manager.",
+      "External traffic gets its own managed gateway path.",
+    ],
+    baseRpm: 900,
+    baseP50: 18,
+  },
+  {
+    id: "jms",
+    label: "jms",
+    role: "message queue · the other async bus.",
+    story: "Kafka's sibling. Same job, different protocol.",
+    details: [
+      "Audit events and workflow notifications at AVPS run on Kafka and JMS.",
+      "Services fail independently instead of together.",
+    ],
+    baseRpm: 4200,
+    baseP50: 9,
+  },
+  {
+    id: "oracle-db",
+    label: "oracle-db",
+    role: "oracle · the bank's system of record.",
+    story: "The old workhorse. Tuned until it behaves.",
+    details: [
+      "Oracle and PL/SQL query tuning, index optimization, transaction management.",
+      "Peak-time payment queries run here.",
+    ],
+    baseRpm: 2600,
+    baseP50: 22,
+  },
+  {
+    id: "mongodb",
+    label: "mongodb",
+    role: "mongodb · flexible documents.",
+    story: "For data that does not fit rows.",
+    details: [
+      "Part of the database lineup: Oracle, PostgreSQL, MySQL, MongoDB, Redis.",
+      "Document-shaped data lives here, not in rows.",
+    ],
+    baseRpm: 800,
+    baseP50: 14,
+  },
+  {
+    id: "spark-etl",
+    label: "spark-etl",
+    role: "spark · nightly reconciliation.",
+    story: "While everyone sleeps, it balances the books.",
+    details: [
+      "Apache Spark batch jobs and ETL pipelines for nightly reconciliation.",
+      "Feeds Tableau dashboards with the reconciled numbers.",
+    ],
+    baseRpm: 60,
+    baseP50: 0,
+  },
+  {
+    id: "tableau",
+    label: "tableau",
+    role: "tableau · the dashboards.",
+    story: "The numbers, where humans can see them.",
+    details: [
+      "Nightly reconciliation results land here as dashboards.",
+      "Business reporting reads these, not the database.",
+    ],
+    baseRpm: 150,
+    baseP50: 40,
+  },
+  {
+    id: "ecs",
+    label: "ecs",
+    role: "aws ecs · where the containers run.",
+    story: "Docker in, running services out.",
+    details: [
+      "Services ship as Docker containers to AWS ECS.",
+      "Jenkins and GitHub Actions both deploy here.",
+    ],
+    baseRpm: 0,
+    baseP50: 0,
+  },
+  {
+    id: "github-actions",
+    label: "github-actions",
+    role: "ci/cd · the other pipeline.",
+    story: "Push, test, ship.",
+    details: [
+      "CI/CD pipelines with GitHub Actions alongside Jenkins.",
+      "Builds, tests and ships services to ECS.",
+    ],
+    baseRpm: 8,
+    baseP50: 0,
+  },
+  {
+    id: "sonarqube",
+    label: "sonarqube",
+    role: "sonarqube · quality gates.",
+    story: "Nothing ships dirty.",
+    details: [
+      "SonarQube coverage raised ahead of releases.",
+      "Unit and integration tests with JUnit and Mockito back it up.",
+    ],
+    baseRpm: 40,
+    baseP50: 0,
+  },
+  {
+    id: "flowforge",
+    label: "flowforge",
+    role: "ai demo · durable workflows.",
+    story: "Workflows that survive crashes.",
+    details: [
+      "Durable workflow engine with human-in-the-loop approvals.",
+      "Live demo, part of the AI Lab trio.",
+    ],
+    baseRpm: 0,
+    baseP50: 0,
+    link: "https://flowforge-tan-xi.vercel.app",
+    linkLabel: "open the live flowforge demo",
+  },
+  {
+    id: "mcp-baremetal",
+    label: "mcp-baremetal",
+    role: "ai demo · raw mcp server.",
+    story: "Model Context Protocol, no wrapper SDK.",
+    details: [
+      "Raw JSON-RPC MCP server, scoped credentials, PII masking.",
+      "Live demo, part of the AI Lab trio.",
+    ],
+    baseRpm: 0,
+    baseP50: 0,
+    link: "https://mcp-baremetal.vercel.app",
+    linkLabel: "open the live mcp-baremetal demo",
+  },
+  {
+    id: "verifiable-rag",
+    label: "verifiable-rag",
+    role: "ai demo · self-correcting rag.",
+    story: "Answers that check themselves.",
+    details: [
+      "Agentic RAG that corrects itself, shown against a naive RAG.",
+      "Live demo, part of the AI Lab trio.",
+    ],
+    baseRpm: 0,
+    baseP50: 0,
+    link: "https://verifiable-rag-rho.vercel.app",
+    linkLabel: "open the live verifiable-rag demo",
   },
 ];
 
