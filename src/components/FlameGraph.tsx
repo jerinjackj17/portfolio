@@ -206,7 +206,7 @@ export default function FlameGraph() {
                     }}
                     aria-label={`${f.label}, ${f.dates}. ${f.story}`}
                     style={{ right: `${100 - (l + w)}%` }}
-                    className={`absolute bottom-2 cursor-pointer px-2 py-1 text-left ring-1 ring-ink/25 ${HEAT_BG[f.heat]} ${HEAT_TEXT[f.heat]}`}
+                    className="absolute bottom-0 cursor-pointer bg-paper px-2 py-1 text-left text-ink ring-1 ring-ink/25"
                   >
                     <span className="tnum block font-mono text-[10px] uppercase tracking-[0.14em]">
                       {f.label}
@@ -284,7 +284,7 @@ export default function FlameGraph() {
                       }}
                       aria-label={`${c.label}. ${c.story}`}
                       style={{ right: `${100 - (l + w)}%` }}
-                      className={`absolute bottom-1 cursor-pointer whitespace-nowrap px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-ink/25 ${HEAT_BG[c.heat]} ${HEAT_TEXT[c.heat]}`}
+                      className="absolute bottom-0 cursor-pointer whitespace-nowrap bg-paper px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink ring-1 ring-ink/25"
                     >
                       {c.label}
                     </button>
