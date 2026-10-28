@@ -121,54 +121,6 @@ export default function FlameGraph() {
             </span>
           </div>
 
-          {/* narrow frames get a callout up here: their bars are too thin
-              to carry a label (AVPS is 3 months of a 78-month timeline),
-              so without this they are invisible on screen. */}
-          <div className="absolute right-0 top-0 flex flex-col items-end gap-1">
-            {careerFrames
-              .filter((f) => pct(f.start, f.end) <= 8)
-              .map((f) => (
-                <button
-                  key={`callout-c-${f.id}`}
-                  type="button"
-                  onClick={() => {
-                    setSelected({ kind: "career", frame: f });
-                    hideTip();
-                  }}
-                  aria-label={`${f.label}, ${f.dates}. ${f.story}`}
-                  className="flex cursor-pointer items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink hover:opacity-70"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`inline-block h-2 w-2 ${HEAT_BG[f.heat]}`}
-                  />
-                  {f.label} · {f.dates}
-                </button>
-              ))}
-            {careerFrames.flatMap((f) =>
-              f.children
-                .filter((c) => (c.widthPct / 100) * pct(f.start, f.end) <= 8)
-                .map((c) => (
-                  <button
-                    key={`callout-h-${c.id}`}
-                    type="button"
-                    onClick={() => {
-                      setSelected({ kind: "hot", frame: c, parent: f });
-                      hideTip();
-                    }}
-                    aria-label={`${c.label}. ${c.story}`}
-                    className="flex cursor-pointer items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink hover:opacity-70"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`inline-block h-2 w-2 ${HEAT_BG[c.heat]}`}
-                    />
-                    {f.label} / {c.label}
-                  </button>
-                )),
-            )}
-          </div>
-
           {/* root bar */}
           <div className="relative h-7 w-full border border-ink/70">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink">
@@ -239,6 +191,32 @@ export default function FlameGraph() {
                 </motion.div>
               );
             })}
+            {careerFrames
+              .filter((f) => pct(f.start, f.end) <= 8)
+              .map((f) => {
+                const l = leftPct(f.start);
+                const w = pct(f.start, f.end);
+                return (
+                  <button
+                    key={`plate-c-${f.id}`}
+                    type="button"
+                    onClick={() => {
+                      setSelected({ kind: "career", frame: f });
+                      hideTip();
+                    }}
+                    aria-label={`${f.label}, ${f.dates}. ${f.story}`}
+                    style={{ right: `${100 - (l + w)}%` }}
+                    className={`absolute bottom-2 cursor-pointer px-2 py-1 text-left ring-1 ring-ink/25 ${HEAT_BG[f.heat]} ${HEAT_TEXT[f.heat]}`}
+                  >
+                    <span className="tnum block font-mono text-[10px] uppercase tracking-[0.14em]">
+                      {f.label}
+                    </span>
+                    <span className="tnum block font-mono text-[10px] opacity-70">
+                      {f.dates}
+                    </span>
+                  </button>
+                );
+              })}
           </div>
 
           {/* row 2: hot frames */}
@@ -287,6 +265,31 @@ export default function FlameGraph() {
                   </motion.div>
                 );
               }),
+            )}
+            {careerFrames.flatMap((f) =>
+              f.children
+                .filter((c) => (c.widthPct / 100) * pct(f.start, f.end) <= 8)
+                .map((c) => {
+                  const parentL = leftPct(f.start);
+                  const parentW = pct(f.start, f.end);
+                  const l = parentL + (c.offsetPct / 100) * parentW;
+                  const w = (c.widthPct / 100) * parentW;
+                  return (
+                    <button
+                      key={`plate-h-${c.id}`}
+                      type="button"
+                      onClick={() => {
+                        setSelected({ kind: "hot", frame: c, parent: f });
+                        hideTip();
+                      }}
+                      aria-label={`${c.label}. ${c.story}`}
+                      style={{ right: `${100 - (l + w)}%` }}
+                      className={`absolute bottom-1 cursor-pointer whitespace-nowrap px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-ink/25 ${HEAT_BG[c.heat]} ${HEAT_TEXT[c.heat]}`}
+                    >
+                      {c.label}
+                    </button>
+                  );
+                }),
             )}
           </div>
 
