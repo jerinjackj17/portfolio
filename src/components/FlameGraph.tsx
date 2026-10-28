@@ -99,13 +99,15 @@ export default function FlameGraph() {
   const frameClass = (heat: number, extra = "") =>
     `absolute top-0 h-full overflow-hidden ${HEAT_BG[heat]} ${HEAT_TEXT[heat]} ${heat === 3 ? "fg-frame-hot" : "fg-frame"} ${extra}`;
 
+  const avps = careerFrames.find((f) => f.id === "avps")!;
+
   return (
     <figure>
       <h2 className="font-display text-3xl font-semibold tracking-tight text-ink md:text-4xl">
         The career, as a flame graph
       </h2>
       <p className="mb-4 mt-2 font-mono text-xs text-smoke">
-        width = time. click a frame to expand it.
+        width = time · 4+ yrs. click a frame to expand it.
       </p>
 
       <div className="overflow-x-auto pb-1">
@@ -126,9 +128,21 @@ export default function FlameGraph() {
             <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink">
               career · apr 2020 → present
             </span>
-            <span className="absolute right-3 top-1/2 hidden -translate-y-1/2 font-mono text-[11px] text-smoke sm:block">
-              4+ yrs
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setSelected({ kind: "career", frame: avps });
+                hideTip();
+              }}
+              aria-label={`${avps.label}, ${avps.dates}. ${avps.story}`}
+              className="absolute right-3 top-1/2 flex -translate-y-1/2 cursor-pointer items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-ink hover:opacity-70"
+            >
+              <span
+                aria-hidden="true"
+                className={`inline-block h-2 w-2 ${HEAT_BG[avps.heat]}`}
+              />
+              {avps.label} · {avps.dates}
+            </button>
           </div>
 
           {/* row 1: career frames */}
@@ -180,10 +194,10 @@ export default function FlameGraph() {
                 >
                   {w > 8 && (
                     <>
-                      <span className="tnum block truncate px-2 pt-2 font-mono text-[10px] uppercase tracking-[0.14em]">
+                      <span className="tnum block px-2 pt-2 font-mono text-[10px] uppercase tracking-[0.14em]">
                         {f.label}
                       </span>
-                      <span className="tnum block truncate px-2 font-mono text-[10px] opacity-70">
+                      <span className="tnum block px-2 font-mono text-[10px] opacity-70">
                         {f.dates}
                       </span>
                     </>
@@ -191,32 +205,6 @@ export default function FlameGraph() {
                 </motion.div>
               );
             })}
-            {careerFrames
-              .filter((f) => pct(f.start, f.end) <= 8)
-              .map((f) => {
-                const l = leftPct(f.start);
-                const w = pct(f.start, f.end);
-                return (
-                  <button
-                    key={`plate-c-${f.id}`}
-                    type="button"
-                    onClick={() => {
-                      setSelected({ kind: "career", frame: f });
-                      hideTip();
-                    }}
-                    aria-label={`${f.label}, ${f.dates}. ${f.story}`}
-                    style={{ right: `${100 - (l + w)}%` }}
-                    className="absolute bottom-0 cursor-pointer bg-paper px-2 py-1 text-left text-ink ring-1 ring-ink/25"
-                  >
-                    <span className="tnum block font-mono text-[10px] uppercase tracking-[0.14em]">
-                      {f.label}
-                    </span>
-                    <span className="tnum block font-mono text-[10px] opacity-70">
-                      {f.dates}
-                    </span>
-                  </button>
-                );
-              })}
           </div>
 
           {/* row 2: hot frames */}
