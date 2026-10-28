@@ -48,7 +48,7 @@ const snippets: Snippet[] = [
   {
     id: "ailab",
     source: "ai lab",
-    text: "His AI Lab has three live demos: flowforge (durable agent workflows on LangGraph with checkpoints, retries, and a human approval gate), mcp-baremetal (a Model Context Protocol server written by hand with scoped credentials and PII masking), and verifiable-rag (a retrieval pipeline that critiques its own hits and abstains when grounding is thin). Links are in the AI Lab section above.",
+    text: "His AI Lab has four live demos: flowforge (durable agent workflows on LangGraph with checkpoints, retries, and a human approval gate), mcp-baremetal (a Model Context Protocol server written by hand with scoped credentials and PII masking), verifiable-rag (a retrieval pipeline that critiques its own hits and abstains when grounding is thin), and fileforge (a free file converter that runs entirely in the browser: drop a file on a circle, pick an output format, download it). Links are in the AI Lab section above.",
   },
   {
     id: "location",
@@ -166,7 +166,7 @@ function intentAnswer(raw: string): Answer | null {
   }
   if (has(q, "ai", "llm", "rag", "agent", "machine learning", "ml")) {
     return {
-      text: "Two layers here. At work he uses AI coding agents daily for boilerplate, test scaffolding, and documentation, three years of that workflow. On his own time he builds applied AI: flowforge (durable agent workflows with a cost kill-switch), mcp-baremetal (a hand-written MCP server), and verifiable-rag (RAG that critiques its own retrieval and abstains instead of hallucinating). All three are live in the AI Lab section. He is not an ML researcher and will tell you so himself.",
+      text: "Two layers here. At work he uses AI coding agents daily for boilerplate, test scaffolding, and documentation, three years of that workflow. On his own time he builds applied AI: flowforge (durable agent workflows with a cost kill-switch), mcp-baremetal (a hand-written MCP server), and verifiable-rag (RAG that critiques its own retrieval and abstains instead of hallucinating), and fileforge (a free client-side file converter). All four are live in the AI Lab section. He is not an ML researcher and will tell you so himself.",
       sources: ["ai lab", "skills · AI Tools"],
     };
   }
@@ -208,7 +208,7 @@ function intentAnswer(raw: string): Answer | null {
   }
   if (has(q, "project", "built", "portfolio", "demo")) {
     return {
-      text: "Three production stories anchor the Projects section: the bank payment speedup, the AVPS endpoint platform, and the reporting query rescue. Separately, his AI Lab has three live demos you can click and break: flowforge, mcp-baremetal, and verifiable-rag. Scroll up for links.",
+      text: "Three production stories anchor the Projects section: the bank payment speedup, the AVPS endpoint platform, and the reporting query rescue. Separately, his AI Lab has four live demos you can click and break: flowforge, mcp-baremetal, verifiable-rag, and fileforge. Scroll up for links.",
       sources: ["projects", "ai lab"],
     };
   }

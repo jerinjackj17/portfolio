@@ -7,7 +7,7 @@ interface LabProject {
   blurb: string;
   stack: string;
   demo: string;
-  repo: string;
+  repo?: string;
 }
 
 const labProjects: LabProject[] = [
@@ -37,6 +37,14 @@ const labProjects: LabProject[] = [
     stack: "Python · FastAPI · TF-IDF · React",
     demo: "https://verifiable-rag-rho.vercel.app",
     repo: "https://github.com/jerinjackj17/verifiable-rag",
+  },
+  {
+    index: "04",
+    title: "fileforge",
+    blurb:
+      "A free file converter that runs entirely in the browser. Drop a file on a circle, pick an output format, download it. Images, text, data, and audio, with nothing uploaded, no account, and no cost.",
+    stack: "React · TypeScript · Canvas · Web Audio",
+    demo: "https://fileforge-alpha.vercel.app",
   },
 ];
 
@@ -77,14 +85,16 @@ export default function AiLab() {
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <p className="font-mono text-xs text-smoke">{p.stack}</p>
               <div className="flex items-center gap-5">
-                <a
-                  href={p.repo}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="u-link font-mono text-xs uppercase tracking-[0.16em] text-ink"
-                >
-                  code →
-                </a>
+                {p.repo && (
+                  <a
+                    href={p.repo}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="u-link font-mono text-xs uppercase tracking-[0.16em] text-ink"
+                  >
+                    code →
+                  </a>
+                )}
                 <a
                   href={p.demo}
                   target="_blank"
