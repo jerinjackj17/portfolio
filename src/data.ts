@@ -4,6 +4,7 @@ export const profile = {
   email: "jerinjack28@gmail.com",
   github: "https://github.com/jerinjackj17",
   linkedin: "https://linkedin.com/in/jerinjackj",
+  resume: "/resume.pdf",
   location: "United States | Open to Relocation",
 };
 

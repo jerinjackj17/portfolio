@@ -121,6 +121,54 @@ export default function FlameGraph() {
             </span>
           </div>
 
+          {/* narrow frames get a callout up here: their bars are too thin
+              to carry a label (AVPS is 3 months of a 78-month timeline),
+              so without this they are invisible on screen. */}
+          <div className="absolute right-0 top-0 flex flex-col items-end gap-1">
+            {careerFrames
+              .filter((f) => pct(f.start, f.end) <= 8)
+              .map((f) => (
+                <button
+                  key={`callout-c-${f.id}`}
+                  type="button"
+                  onClick={() => {
+                    setSelected({ kind: "career", frame: f });
+                    hideTip();
+                  }}
+                  aria-label={`${f.label}, ${f.dates}. ${f.story}`}
+                  className="flex cursor-pointer items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink hover:opacity-70"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`inline-block h-2 w-2 ${HEAT_BG[f.heat]}`}
+                  />
+                  {f.label} · {f.dates}
+                </button>
+              ))}
+            {careerFrames.flatMap((f) =>
+              f.children
+                .filter((c) => (c.widthPct / 100) * pct(f.start, f.end) <= 8)
+                .map((c) => (
+                  <button
+                    key={`callout-h-${c.id}`}
+                    type="button"
+                    onClick={() => {
+                      setSelected({ kind: "hot", frame: c, parent: f });
+                      hideTip();
+                    }}
+                    aria-label={`${c.label}. ${c.story}`}
+                    className="flex cursor-pointer items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink hover:opacity-70"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`inline-block h-2 w-2 ${HEAT_BG[c.heat]}`}
+                    />
+                    {f.label} / {c.label}
+                  </button>
+                )),
+            )}
+          </div>
+
           {/* root bar */}
           <div className="relative h-7 w-full border border-ink/70">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink">
@@ -160,11 +208,19 @@ export default function FlameGraph() {
                   onFocus={() => showTip(id, `${f.label} · ${f.dates}`, f.story)}
                   onBlur={hideTip}
                   className={`${frameClass(f.heat, `cursor-pointer border-r-2 border-paper${isSel ? " outline outline-2 outline-flame -outline-offset-2" : ""}`)}`}
-                  style={{
-                    left: `calc(${l}% + 1px)`,
-                    minWidth: w < 8 ? 100 : undefined,
-                    ...(reduceMotion ? { width: `${w}%` } : {}),
-                  }}
+                  style={
+                    l + w >= 99.5
+                      ? {
+                          right: 0,
+                          minWidth: 48,
+                          ...(reduceMotion ? { width: `${w}%` } : {}),
+                        }
+                      : {
+                          left: `calc(${l}% + 1px)`,
+                          minWidth: w < 8 ? 100 : undefined,
+                          ...(reduceMotion ? { width: `${w}%` } : {}),
+                        }
+                  }
                   initial={reduceMotion ? false : { width: 0 }}
                   whileInView={reduceMotion ? undefined : { width: `${w}%` }}
                   viewport={{ once: true, margin: "-60px" }}

@@ -75,7 +75,6 @@ export default function MessageForm() {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ada Lovelace"
             autoComplete="name"
             className={inputCls}
           />
@@ -89,7 +88,6 @@ export default function MessageForm() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="ada@example.com"
             autoComplete="email"
             className={inputCls}
           />
@@ -103,7 +101,6 @@ export default function MessageForm() {
           required
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="We have a slow endpoint and a role with your name on it…"
           rows={4}
           className={`${inputCls} resize-y`}
         />

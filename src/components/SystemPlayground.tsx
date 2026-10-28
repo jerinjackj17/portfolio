@@ -97,6 +97,10 @@ const ROADS: Road[] = [
   { id: "r-spark-tableau", d: "M 1600 542 V 670", from: "spark-etl", to: "tableau", ambient: true },
   { id: "r-jenkins-ecs", d: "M 375 1042 V 1110 H 1600 V 942", from: "jenkins", to: "ecs", ambient: true },
   { id: "r-jenkins-sonar", d: "M 460 1006 H 535", from: "jenkins", to: "sonarqube", ambient: true },
+  // deploy pipeline: github-actions -> jenkins -> sonarqube -> ecs -> prometheus
+  { id: "r-gh-jenkins", d: "M 215 1006 H 290", from: "github-actions", to: "jenkins", ambient: true },
+  { id: "r-sonar-ecs", d: "M 620 970 V 955 H 1600 V 942", from: "sonarqube", to: "ecs", ambient: true },
+  { id: "r-ecs-prom", d: "M 1600 942 V 1090 H 865 V 1042", from: "ecs", to: "prometheus", ambient: true },
 ];
 
 const ZONES: [string, number][] = [
@@ -565,6 +569,38 @@ function BikeArt({ solid }: { solid?: boolean }) {
     </g>
   );
 }
+
+function PackageArt() {
+  const { INK, PAPER } = usePalette();
+  return (
+    <g
+      stroke={INK}
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill={PAPER}
+    >
+      <rect x={-9} y={-7} width={18} height={14} />
+      <path d="M-9 -1 H9" />
+      <path d="M0 -7 V -13 M -4 -9 L 0 -13 L 4 -9" />
+    </g>
+  );
+}
+
+/* ============ the deploy pipeline: a push to main, driven ============ */
+/* Down to ECS and Prometheus. One-way: no return leg, no response card.
+   The vehicle passes THROUGH each stage box (nodes render on top), which
+   reads as the work happening inside the stage. Separate from the request
+   sim: its own state, its own tick, it never touches incidents. */
+
+const DEPLOY_LEGS = ["r-gh-jenkins", "r-jenkins-sonar", "r-sonar-ecs", "r-ecs-prom"];
+const DEPLOY_STAGES = [
+  "Push to main",
+  "Build + unit tests",
+  "SonarQube gate",
+  "Deploy to ECS",
+  "Prometheus watching",
+];
 
 function VehicleMark({ kind }: { kind: VKind }) {
   if (kind === "car") return <CarArt />;
@@ -1044,6 +1080,85 @@ export default function SystemPlayground() {
 
   const userActive = sim.trips.some((t) => t.user);
 
+  /* ---- deploy pipeline ---- */
+  const deployPath = useRef<{
+    pts: Pt[];
+    cum: number[];
+    legEnds: number[];
+    total: number;
+  } | null>(null);
+  const [deployDist, setDeployDist] = useState<number | null>(null);
+  const [deployDone, setDeployDone] = useState(false);
+  const deployActive = deployDist != null && !deployDone;
+
+  const startDeploy = () => {
+    const samples = samplesRef.current;
+    const raw: Pt[] = [];
+    const legEndIdx: number[] = [];
+    for (const rid of DEPLOY_LEGS) {
+      const pts = samples[rid];
+      if (!pts) return; // diagram still measuring; button stays usable
+      for (let i = 0; i < pts.length; i++) {
+        if (raw.length > 0 && i === 0) continue;
+        raw.push(pts[i]);
+      }
+      legEndIdx.push(raw.length - 1);
+    }
+    const cum: number[] = [0];
+    for (let i = 1; i < raw.length; i++) {
+      const a = raw[i - 1];
+      const b = raw[i];
+      cum.push(cum[i - 1] + Math.hypot(b.x - a.x, b.y - a.y));
+    }
+    const total = cum[cum.length - 1];
+    deployPath.current = {
+      pts: raw,
+      cum,
+      legEnds: legEndIdx.map((i) => cum[i]),
+      total,
+    };
+    if (reduceMotion) {
+      setDeployDist(total);
+      setDeployDone(true);
+      return;
+    }
+    setDeployDone(false);
+    setDeployDist(0);
+  };
+
+  // deploy tick: same 150ms cadence as the request sim, ~9s end to end
+  useEffect(() => {
+    if (!deployActive) return;
+    const id = window.setInterval(() => {
+      setDeployDist((d) => {
+        if (d == null) return d;
+        const total = deployPath.current?.total ?? 0;
+        return Math.min(total, d + total / 60);
+      });
+    }, 150);
+    return () => window.clearInterval(id);
+  }, [deployActive]);
+
+  useEffect(() => {
+    if (
+      deployDist != null &&
+      deployPath.current &&
+      deployDist >= deployPath.current.total
+    ) {
+      setDeployDone(true);
+    }
+  }, [deployDist]);
+
+  // stages done: the push itself, plus one per pipeline leg arrived at
+  const deployDoneCount =
+    deployDist == null
+      ? 0
+      : Math.min(
+          DEPLOY_STAGES.length,
+          1 +
+            (deployPath.current?.legEnds.filter((e) => deployDist >= e).length ?? 0),
+        );
+
   const statusText = (): string => {
     if (userActive) return "request on its way…";
     if (sim.scenario === "slow-db")
@@ -1192,6 +1307,60 @@ export default function SystemPlayground() {
         </div>
       </div>
 
+      {/* deploy pipeline strip */}
+      <div className="mt-3 border border-ink/70 p-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-smoke">
+            deploy pipeline
+          </span>
+          <button
+            type="button"
+            onClick={startDeploy}
+            disabled={deployActive}
+            className="border border-ink bg-ink px-6 py-1.5 font-mono text-xs font-medium uppercase tracking-[0.18em] text-paper transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {deployDone
+              ? "ship another →"
+              : deployActive
+                ? "shipping…"
+                : "ship a deploy →"}
+          </button>
+          <span className="font-mono text-[11px] text-faint">
+            simulates a push to main. watch the package ride down to ECS and
+            Prometheus.
+          </span>
+        </div>
+        {(deployActive || deployDone) && (
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-rule pt-2">
+            {DEPLOY_STAGES.map((st, i) => {
+              const done = deployDone || i < deployDoneCount;
+              const cur = !deployDone && i === deployDoneCount;
+              return (
+                <span
+                  key={st}
+                  className={`font-mono text-[11px] uppercase tracking-[0.14em] ${
+                    cur
+                      ? "text-flame-deep"
+                      : done
+                        ? "text-ink"
+                        : "text-faint"
+                  }`}
+                >
+                  {done ? "✓ " : cur ? "● " : "○ "}
+                  {st}
+                </span>
+              );
+            })}
+          </div>
+        )}
+        {deployDone && (
+          <p className="mt-2 font-mono text-xs text-ink">
+            deployed. build, unit tests, SonarQube gate, ECS rollout,
+            Prometheus watching.
+          </p>
+        )}
+      </div>
+
       {/* diagram */}
       <div className="mt-3 overflow-x-auto pb-1">
         <div className="relative min-w-[900px]">
@@ -1330,6 +1499,22 @@ export default function SystemPlayground() {
                 </g>
               );
             })}
+            {deployDist != null &&
+              deployPath.current &&
+              (() => {
+                const p = locate(
+                  deployPath.current.pts,
+                  deployPath.current.cum,
+                  deployDist,
+                );
+                return (
+                  <g
+                    transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${p.ang.toFixed(1)})`}
+                  >
+                    <PackageArt />
+                  </g>
+                );
+              })()}
             {GEOM.map((g) => (
               <SysNode
                 key={g.id}

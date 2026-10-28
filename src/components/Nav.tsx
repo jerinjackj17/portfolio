@@ -41,7 +41,7 @@ export default function Nav() {
             </a>
           ))}
           <a
-            href={profile.linkedin}
+            href={profile.resume}
             target="_blank"
             rel="noreferrer"
             className="u-link whitespace-nowrap text-ink"
