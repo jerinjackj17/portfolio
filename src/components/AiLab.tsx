@@ -42,7 +42,7 @@ const labProjects: LabProject[] = [
     index: "04",
     title: "fileforge",
     blurb:
-      "A free file converter that runs entirely in the browser. Drop a file on a circle, pick an output format, download it. Images, text, data, and audio, with nothing uploaded, no account, and no cost.",
+      "A free file converter that runs entirely in the browser. Drop a file on a petal of the flower to convert it, or use Merge, Compress, and Resize. PDF and Word keep their layout, with nothing uploaded, no account, and no cost.",
     stack: "React · TypeScript · Canvas · Web Audio",
     demo: "https://fileforge-alpha.vercel.app",
   },

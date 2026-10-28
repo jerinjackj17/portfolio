@@ -48,7 +48,7 @@ const snippets: Snippet[] = [
   {
     id: "ailab",
     source: "ai lab",
-    text: "His AI Lab has four live demos: flowforge (durable agent workflows on LangGraph with checkpoints, retries, and a human approval gate), mcp-baremetal (a Model Context Protocol server written by hand with scoped credentials and PII masking), verifiable-rag (a retrieval pipeline that critiques its own hits and abstains when grounding is thin), and fileforge (a free file converter that runs entirely in the browser: drop a file on a circle, pick an output format, download it). Links are in the AI Lab section above.",
+    text: "His AI Lab has four live demos: flowforge (durable agent workflows on LangGraph with checkpoints, retries, and a human approval gate), mcp-baremetal (a Model Context Protocol server written by hand with scoped credentials and PII masking), verifiable-rag (a retrieval pipeline that critiques its own hits and abstains when grounding is thin), and fileforge (a free file converter that runs entirely in the browser: drop a file on a flower petal to convert it, or merge, compress, or resize it). Links are in the AI Lab section above.",
   },
   {
     id: "location",
